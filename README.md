@@ -1,2 +1,2 @@
 # managed_pihole
-managed pihole
+Managed Pihole for Version 5.x
