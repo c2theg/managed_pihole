@@ -53,7 +53,6 @@ then
         mkdir -p /etc/pihole/backup/
 		#mkdir -p /etc/pihole/backup/dnsmasq.d/
 		#cp /etc/dnsmasq.d/*  /etc/pihole/backup/dnsmasq.d/
-
 		cp /etc/pihole/setupVars.conf /etc/pihole/backup/
 		#cp /etc/pihole/adlists.list   /etc/pihole/backup/
 		cp /etc/pihole/whitelist.txt  /etc/pihole/backup/
@@ -61,58 +60,60 @@ then
 		#cp /etc/pihole/wildcardblocking.txt /etc/pihole/backup/
 	fi
 	
-	if [ -s "/root/update_pihole_lists.sh" ]
+	if [ -s "/root/update_lists.sh" ]
 	then
 		echo " Deleting files... "
 		#------ under crontab -----
-		rm /root/pihole_allowlist.sh*
-		rm /root/pihole_blocklist.sh*
-		rm /root/update_pihole_lists.sh*
+#		rm /root/pihole_allowlist.sh*
+#		rm /root/pihole_blocklist.sh*
+		rm /root/update_lists.sh*
 		rm /root/pihole_exclude_list.txt*
 	fi
 	#rm resolv_base.conf*
 	#rm pihole_exclude_list.txt
-	#rm update_pihole_lists.sh
+	#rm update_lists.sh
 	#rm update_blocklists_local_servers.sh
 	#rm blocklist_regexs_cg.txt
 	#rm *.1
 	
 	echo "Downloading latest versions... \r\n\r\n"
-	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/update_pihole_lists.sh
-	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/pihole_allowlist.sh
-	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/pihole_exclude_list.txt
-	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_regexs_cg.txt
+    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/update_lists.sh
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_blocklists.txt
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/pihole_allowlist.sh
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/pihole_exclude_list.txt
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_regex_blocks.txt
 
 
+    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.py
+    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/backup_dbs.py
+    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/upsert_lists.py
 
 	#-- OS base config --
 #	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/update_blocklists_local_servers.sh && chmod u+x update_blocklists_local_servers.sh
 	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/configs/resolv_base.conf
 	cp resolv_base.conf /etc/resolv.conf
-	cp resolv_base.conf /etc/resolvconf/resolv.conf.d/base
-	
+	cp resolv_base.conf /etc/resolvconf/resolv.conf.d/base	
 	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/update_time.sh && chmod +u update_time.sh && cp /root/update_time.sh
 	#--------------------------------------------------------------------------------------------------------
-	wait
-    chmod u+x update_lists.sh && chown pihole:www-data update_lists.sh
 
-	chmod u+x pihole_allowlist.sh && chown pihole:www-data pihole_allowlist.sh
-	chmod u+x pihole_blocklist.sh && chown pihole:www-data pihole_blocklist.sh	
-#	chmod u+x update_pihole_lists-porn.sh && chown pihole:www-data update_pihole_lists-porn.sh
+    #--- set permissions ---
+    chmod u+x *.sh
+    chmod u+x *.py
+    chown pihole:www-data *.sh
+    chown pihole:www-data *.py
+    #----------------------
 	wait
 	
-    mv update_lists.sh /root/update_pihole_lists.sh
-
-	mv pihole_exclude_list.txt /root/pihole_exclude_list.txt
+    mv update_lists.sh /root/update_lists.sh
 #	mv pihole_allowlist.sh /root/pihole_allowlist.sh
 #	mv pihole_blocklist.sh /root/pihole_blocklist.sh
-	mv blocklist_regexs_cg.txt /etc/pihole/regex.list
+#	mv blocklist_regexs_cg.txt /etc/pihole/regex.list
 	wait
-	
+
 	#----------------------------------------------------------------
 	echo "Setting up exclude list domains... \r\n "
-	
 	#---- Update exclude Top Domain, list. to Ignore popular sites, in a effort to expose sites that shouldn't be loaded
+    mv pihole_exclude_list.txt /root/pihole_exclude_list.txt
 	API_EXCLUDE_DOMAINS_list=$(paste -s -d ',' /root/pihole_exclude_list.txt)
 	sed -i '/API_EXCLUDE_DOMAINS=/c\'API_EXCLUDE_DOMAINS="$API_EXCLUDE_DOMAINS_list" /etc/pihole/setupVars.conf
 	#----------------------------------------------------------------
@@ -148,21 +149,20 @@ else
 	"
 fi
 #-----------------------------------------------------------------------------------------
-Cron_output=$(crontab -l | grep "update_pihole_lists.sh")
+Cron_output=$(crontab -l | grep "update_lists.sh")
 #echo "The output is: [ $Cron_output ]"
 if [ -z "$Cron_output" ]
 then
-    echo "update_pihole_lists.sh not in crontab. Adding."
+    echo "update_lists.sh not in crontab. Adding."
 
     # run “At 04:20.” everyday
-    line="20 4 * * * /root/update_pihole_lists.sh >> /var/log/update_pihole_lists.log 2>&1"
+    line="20 4 * * * /root/update_lists.sh >> /var/log/update_lists.log 2>&1"
     (crontab -u root -l; echo "$line" ) | crontab -u root -
 
     wait
     /etc/init.d/cron restart  > /dev/null
 else
-    echo "update_pihole_lists.sh was found in crontab. skipping addition"
+    echo "update_lists.sh was found in crontab. skipping addition"
 fi
 
 echo "Done! \r\n \r\n"
-echo "If you want to update and block porn too, please run the following: ./update_pihole_lists-porn.sh \r\n \r\n"
