@@ -21,7 +21,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
 
 
 Version:  0.5.0                             \r\n
-Last Updated:  11/8/2020
+Last Updated:  11/11/2020
 
 location: 
 
@@ -83,18 +83,10 @@ then
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/pihole_exclude_list.txt
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_regex_blocks.txt
 
-
+    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.sh
     sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.py
     sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/backup_dbs.py
     sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/upsert_lists.py
-
-	#-- OS base config --
-#	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/update_blocklists_local_servers.sh && chmod u+x update_blocklists_local_servers.sh
-	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/configs/resolv_base.conf
-	cp resolv_base.conf /etc/resolv.conf
-	cp resolv_base.conf /etc/resolvconf/resolv.conf.d/base	
-	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/update_time.sh && chmod +u update_time.sh && cp /root/update_time.sh
-	#--------------------------------------------------------------------------------------------------------
 
     #--- set permissions ---
     chmod u+x *.sh
@@ -136,11 +128,16 @@ then
 	echo "Black lists... 
 	
 	"
-	sh /root/pihole_blocklist.sh
+	
+    #sh /root/pihole_blocklist.sh
 	wait
 
 	wait
-	sh /root/update_time.sh	
+	sh /root/update_time.sh
+
+
+    wait
+    sudo ./upsert_lists.py
 else
 	echo "
 	
@@ -148,21 +145,3 @@ else
 	
 	"
 fi
-#-----------------------------------------------------------------------------------------
-Cron_output=$(crontab -l | grep "update_lists.sh")
-#echo "The output is: [ $Cron_output ]"
-if [ -z "$Cron_output" ]
-then
-    echo "update_lists.sh not in crontab. Adding."
-
-    # run “At 04:20.” everyday
-    line="20 4 * * * /root/update_lists.sh >> /var/log/update_lists.log 2>&1"
-    (crontab -u root -l; echo "$line" ) | crontab -u root -
-
-    wait
-    /etc/init.d/cron restart  > /dev/null
-else
-    echo "update_lists.sh was found in crontab. skipping addition"
-fi
-
-echo "Done! \r\n \r\n"

@@ -33,7 +33,6 @@ Adlist_File = "cgray_blocklists.txt"
 os.system("pihole -v -c")
 os.system("pihole status")
 
-
 print ("stopping pihole-FTL... \r\n \r\n")
 os.system("pihole -up")
 #----------------------
@@ -85,11 +84,46 @@ with open(Adlist_File, 'r') as fp:
             RowsToAdd.append(AddEntry)
 
 
+#------------ blocklist_regexs --------------------
+Adlist_File = "blocklist_regexs_cg.txt"
+RegexEntries = []
+with open(Adlist_File, 'r') as fp: 
+    for line in fp:
+        count += 1
+        lineContent = line.strip()
+        if not lineContent or line[0] == "#": # if line is empty, move to next line
+            #print ("Skipping line: " + str(count) + "\r\n")
+            continue
+        #print("Line{}: {} \r\n".format(count, lineContent)) 
+        #print ("Searching for: [" + str(lineContent) + "] \r\n")
+        # Query db to see if entry exists
+        cur.execute("SELECT id FROM domainlist WHERE domain=?", (lineContent,))
+        rows = cur.fetchone()
+        if rows != None:
+            #print(rows, "\r\n")
+            for row in rows:
+                print(" *** Exists in db: " + str(row) + ",  URL: " + str(lineContent) + " *** \r\n")
+        else:
+            dbCommit = True
+            print ('Adding entry to pending list: ', str(lineContent), ' \r\n')
+            #c.execute("INSERT INTO 'adlist' (address, enabled,date_added, date_modified,comment) VALUES (", str(lineContent), ",  '1', " + strftime("%s","now") + ", " + strftime("%s","now") + ", '+cgray importer'");  # add entry to db
+            AddEntry = (str(lineContent), '3','1', UnixEpoch, UnixEpoch, '+cgray importer')
+            RegexEntries.append(AddEntry)
+
+
+
 if dbCommit == True:
     print("\r\n \r\n ------ About to add the following entries ------ \r\n \r\n")
     pp.pprint(RowsToAdd)
     print("\r\n \r\n")
     cur.executemany('INSERT OR IGNORE INTO adlist(address, enabled,date_added, date_modified,comment) VALUES (?,?,?,?,?)', RowsToAdd)
+    
+    #---- RegEx's ----------
+    pp.pprint(RegexEntries)
+    print("\r\n \r\n")
+    cur.executemany('INSERT OR IGNORE INTO domainlist(domain, type, enabled, date_added, date_modified, comment) VALUES (?,?,?,?,?,?)', RegexEntries)
+
+
     #------------ DONE ------------------
     print("Commiting changes to db... ")
     conn.commit()
