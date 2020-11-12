@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.3
+Version:  0.5.4
 Last Updated:  11/12/2020
 
 location: 
@@ -65,6 +65,7 @@ then
 		echo " Deleting files... "
 		#------ under crontab -----
 		rm update_lists.*
+		rm /root/update_lists.*
 		rm cgray_blocklists.*
 		rm pihole_allowlist.*
 		rm pihole_exclude_list.*
@@ -95,13 +96,8 @@ then
     chown pihole:www-data *.sh
     chown pihole:www-data *.py
     #----------------------
-
-#   mv update_lists.sh /root/update_lists.sh
-#	mv pihole_allowlist.sh /root/pihole_allowlist.sh
-#	mv pihole_blocklist.sh /root/pihole_blocklist.sh
-#	mv blocklist_regexs_cg.txt /etc/pihole/regex.list
+	cp upsert_lists.py /root/upsert_lists.py
 	wait
-
 	#----------------------------------------------------------------
 	echo "Setting up exclude list domains... \r\n "
 	#---- Update exclude Top Domain, list. to Ignore popular sites, in a effort to expose sites that shouldn't be loaded
@@ -128,14 +124,6 @@ then
 	echo "Black lists... 
 	
 	"
-	
-    #sh /root/pihole_blocklist.sh
-	wait
-
-#	wait
-#	sh /root/update_time.sh
-
-
     wait
     sudo ./upsert_lists.py
 else
