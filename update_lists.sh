@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.1                             \r\n
+Version:  0.5.2
 Last Updated:  11/12/2020
 
 location: 
@@ -64,15 +64,15 @@ then
 	then
 		echo " Deleting files... "
 		#------ under crontab -----
-#		rm /root/pihole_allowlist.sh*
-#		rm /root/pihole_blocklist.sh*
-		rm /root/update_lists.sh*
-		rm /root/pihole_exclude_list.txt*
+		rm update_lists.*
+		rm cgray_blocklists.*
+		rm pihole_allowlist.*
+		rm pihole_exclude_list.*
+		rm blocklist_regexs_cg.*
+		rm initial_setup.*
+		rm backup_dbs.*
+		rm upsert_lists.*
 	fi
-	
-	#rm update_blocklists_local_servers.sh
-	#rm blocklist_regexs_cg.txt
-	#rm *.1
 	
 	echo "Downloading latest versions... \r\n\r\n"
     sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/update_lists.sh
