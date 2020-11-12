@@ -3,7 +3,7 @@
 #-------------------------------------------------------------
 #  * Copyright (c) 2021 Christopher Gray
 #  * All rights reserved.  Proprietary and Confidential.
-# Version: 0.0.11
+# Version: 0.0.12
 # Updated: 11/12/2020
 # ChangeLog:
 #
@@ -73,14 +73,14 @@ cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_
 cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.101'," + UnixEpoch + "," + UnixEpoch + ", '<Person_Name> - <Device> (Public MAC) - <usecase> - <conn type>')")
 cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.102'," + UnixEpoch + "," + UnixEpoch + ", 'Son - iPad')")
 cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.103'," + UnixEpoch + "," + UnixEpoch + ", 'Son - iPad (Public Addr')")
-cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.105'," + UnixEpoch + "," + UnixEpoch + ", 'Son - Laptop - school - wifi')")
+cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.104'," + UnixEpoch + "," + UnixEpoch + ", 'Son - Laptop - school - wifi')")
 
-cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.104'," + UnixEpoch + "," + UnixEpoch + ", 'Daughter - iPhone')")
-cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.105'," + UnixEpoch + "," + UnixEpoch + ", 'Daughter - Laptop - school - wifi')")
-cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.106'," + UnixEpoch + "," + UnixEpoch + ", 'Daughter - Laptop - home - wifi')")
+#cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.105'," + UnixEpoch + "," + UnixEpoch + ", 'Daughter - iPhone')")
+#cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.106'," + UnixEpoch + "," + UnixEpoch + ", 'Daughter - Laptop - school - wifi')")
+cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.107'," + UnixEpoch + "," + UnixEpoch + ", 'Daughter - Laptop - home - wifi')")
 
-# cur.execute("INSERT INTO 'client' (id, ip, date_added, date_modified, comment) VALUES (8, '192.168.0.107'," + UnixEpoch + "," + UnixEpoch + ", 'Mom - iPhone')")
-# cur.execute("INSERT INTO 'client' (id, ip, date_added, date_modified, comment) VALUES (9, '192.168.0.108'," + UnixEpoch + "," + UnixEpoch + ", 'Mom - Laptop - home - wifi')")
+# cur.execute("INSERT INTO 'client' (id, ip, date_added, date_modified, comment) VALUES (8, '192.168.0.108'," + UnixEpoch + "," + UnixEpoch + ", 'Mom - iPhone')")
+# cur.execute("INSERT INTO 'client' (id, ip, date_added, date_modified, comment) VALUES (9, '192.168.0.109'," + UnixEpoch + "," + UnixEpoch + ", 'Mom - Laptop - home - wifi')")
 
 # cur.execute("INSERT INTO 'client' (id, ip, date_added, date_modified, comment) VALUES (10, '192.168.0.109'," + UnixEpoch + "," + UnixEpoch + ", 'Dad - Laptop - work - wifi')")
 # cur.execute("INSERT INTO 'client' (id, ip, date_added, date_modified, comment) VALUES (11, '192.168.0.110'," + UnixEpoch + "," + UnixEpoch + ", 'Dad - Laptop - work - eth0')")
