@@ -131,7 +131,7 @@ songkick.plex.tv
 plex.tv
 plexapp.com
 zpns.zoom.us
-lastfm.freetls.fastly.net
+*.fastly.net
 mediaservices.cdn-apple.com
 olmprodpowerlift-cdn.azureedge.net
 www.msftconnecttest.com
@@ -145,3 +145,10 @@ api.discovery.com
 ctldl.windowsupdate.com
 outlook.office.com
 time.samsungcloudsolution.com
+*.linkedin.com
+linkedin.com
+zoom.us
+*.zoom.us
+*.verizonmedia.com
+*.windows.net
+*.ytimg.com
