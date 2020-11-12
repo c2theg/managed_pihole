@@ -3,7 +3,7 @@
 #-------------------------------------------------------------
 #  * Copyright (c) 2021 Christopher Gray
 #  * All rights reserved.  Proprietary and Confidential.
-# Version: 0.0.12
+# Version: 0.0.13
 # Updated: 11/12/2020
 # ChangeLog:
 #

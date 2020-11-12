@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.1                             \r\n
+Version:  0.5.2                             \r\n
 Last Updated:  11/12/2020
 
 location: 
@@ -61,6 +61,14 @@ then
     #echo "Add repo keys... "
     #apt-key adv --keyserver   keyserver.ubuntu.com --recv-keys 7638D0442B90D010
     #apt-key adv --keyserver   keyserver.ubuntu.com --recv-keys 04EE7237B7D453EC
+	#----------------------------------------------------------------
+	#sed -i '/MAXDBDAYS=/c\'MAXDBDAYS="60" /etc/pihole/setupVars.conf
+    echo "MAXDBDAYS=90" >> /etc/pihole/setupVars.conf
+    echo "IGNORE_LOCALHOST=yes" >> /etc/pihole/setupVars.conf
+    echo "RESOLVE_IPV6=yes" >> /etc/pihole/setupVars.conf
+    echo "RESOLVE_IPV4=yes" >> /etc/pihole/setupVars.conf
+    echo "NAMES_FROM_NETDB=true" >> /etc/pihole/setupVars.conf
+    #----------------------------------------------------------------
 
     wait
     chmod u+x initial_setup.py
