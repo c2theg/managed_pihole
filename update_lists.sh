@@ -92,9 +92,8 @@ then
     chown pihole:www-data *.sh
     chown pihole:www-data *.py
     #----------------------
-	wait
-	
-    mv update_lists.sh /root/update_lists.sh
+
+#   mv update_lists.sh /root/update_lists.sh
 #	mv pihole_allowlist.sh /root/pihole_allowlist.sh
 #	mv pihole_blocklist.sh /root/pihole_blocklist.sh
 #	mv blocklist_regexs_cg.txt /etc/pihole/regex.list
@@ -130,8 +129,8 @@ then
     #sh /root/pihole_blocklist.sh
 	wait
 
-	wait
-	sh /root/update_time.sh
+#	wait
+#	sh /root/update_time.sh
 
 
     wait
