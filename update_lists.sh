@@ -21,7 +21,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
 
 
 Version:  0.5.0                             \r\n
-Last Updated:  11/11/2020
+Last Updated:  11/12/2020
 
 location: 
 
@@ -81,7 +81,7 @@ then
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_blocklists.txt
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/pihole_allowlist.sh
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/pihole_exclude_list.txt
-	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_regex_blocks.txt
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/blocklist_regexs_cg.txt
 
     sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.sh
     sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.py
