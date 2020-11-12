@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.4
+Version:  0.5.5
 Last Updated:  11/12/2020
 
 location: 
@@ -60,24 +60,24 @@ then
 		#cp /etc/pihole/wildcardblocking.txt /etc/pihole/backup/
 	fi
 	
+	echo " Deleting files... "
+	rm update_lists.*
+	rm cgray_blocklists.*
+	rm pihole_allowlist.*
+	rm pihole_exclude_list.*
+	rm blocklist_regexs_cg.*
+	rm initial_setup.*
+	rm backup_dbs.*
+	rm upsert_lists.*
+	rm update_time.sh.*
+	rm resolv_base.conf.*
+	rm cgray_regex_blocks.txt.*
+
 	if [ -s "/root/update_lists.sh" ]
 	then
-		echo " Deleting files... "
-		#------ under crontab -----
-		rm update_lists.*
 		rm /root/update_lists.*
-		rm cgray_blocklists.*
-		rm pihole_allowlist.*
-		rm pihole_exclude_list.*
-		rm blocklist_regexs_cg.*
-		rm initial_setup.*
-		rm backup_dbs.*
-		rm upsert_lists.*
-		rm update_time.sh.*
-		rm resolv_base.conf.*
-		rm cgray_regex_blocks.txt.*
 	fi
-	
+
 	echo "Downloading latest versions... \r\n\r\n"
     sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/update_lists.sh
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_blocklists.txt
@@ -104,13 +104,6 @@ then
     mv pihole_exclude_list.txt /root/pihole_exclude_list.txt
 	API_EXCLUDE_DOMAINS_list=$(paste -s -d ',' /root/pihole_exclude_list.txt)
 	sed -i '/API_EXCLUDE_DOMAINS=/c\'API_EXCLUDE_DOMAINS="$API_EXCLUDE_DOMAINS_list" /etc/pihole/setupVars.conf
-	#----------------------------------------------------------------
-	#sed -i '/MAXDBDAYS=/c\'MAXDBDAYS="60" /etc/pihole/setupVars.conf
-    echo "MAXDBDAYS=90" >> /etc/pihole/setupVars.conf
-    echo "IGNORE_LOCALHOST=yes" >> /etc/pihole/setupVars.conf
-    echo "RESOLVE_IPV6=yes" >> /etc/pihole/setupVars.conf
-    echo "RESOLVE_IPV4=yes" >> /etc/pihole/setupVars.conf
-    echo "NAMES_FROM_NETDB=true" >> /etc/pihole/setupVars.conf
 	#----------------------------------------------------------------
 	echo "Updating pihole \r\n \r\n"
 	sudo pihole -up
