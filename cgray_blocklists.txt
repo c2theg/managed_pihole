@@ -29,13 +29,9 @@
 
 ## uBlock Origin lists
 #https://www.malwaredomainlist.com/hostslist/hosts.txt - DOWN as of 1/12/2020
+http://www.malwaredomainlist.com/hostslist/ip.txt
+http://www.malwaredomainlist.com/hostslist/yesterday_urls.php
 
-#https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt   #  Format: Adblock (list type not supported)
-#https://easylist.to/easylist/easylist.txt    #  Format: Adblock (list type not supported)
-#https://easylist.to/easylist/easyprivacy.txt   #  Format: Adblock (list type not supported)
-#https://easylist.to/easylist/fanboy-annoyance.txt   #  Format: Adblock (list type not supported)
-#https://v.firebog.net/hosts/Kowabit.txt
-#https://www.joewein.net/dl/bl/dom-bl-base.txt
 
 #------- Sources: https://firebog.net/ -------
 https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-porn/hosts
@@ -43,6 +39,7 @@ https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/gambling/h
 
 ## MalwareDomains
 https://raw.githubusercontent.com/Ultimate-Hosts-Blacklist/MalwareDomainList.com/master/volatile.list
+
 
 ## Cameleon
 http://sysctl.org/cameleon/hosts
@@ -73,12 +70,10 @@ https://zerodot1.gitlab.io/CoinBlockerLists/hosts
 
 ## - blocklist.site
 https://blocklist.site/app/dl/phishing
-## https://blocklist.site/app/dl/fakenews
 https://blocklist.site/app/dl/malware
 https://blocklist.site/app/dl/piracy
 https://blocklist.site/app/dl/ransomware
 https://blocklist.site/app/dl/scam
-## https://blocklist.site/app/dl/spam
 https://blocklist.site/app/dl/tracking
 
 ## - https://discourse.pi-hole.net/t/auto-update-script/30698 --
@@ -95,9 +90,7 @@ https://hostsfile.org/Downloads/hosts.txt
 https://someonewhocares.org/hosts/zero/hosts
 https://raw.githubusercontent.com/vokins/yhosts/master/hosts
 https://winhelp2002.mvps.org/hosts.txt
-## https://hosts.nfz.moe/basic/hosts
 https://raw.githubusercontent.com/RooneyMcNibNug/pihole-stuff/master/SNAFU.txt
-## https://ssl.bblck.me/blacklists/hosts-file.txt
 https://hostsfile.mine.nu/hosts0.txt
 https://adblock.mahakala.is
 https://adaway.org/hosts.txt
