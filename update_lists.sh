@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.0                             \r\n
+Version:  0.5.1                             \r\n
 Last Updated:  11/12/2020
 
 location: 
@@ -69,9 +69,7 @@ then
 		rm /root/update_lists.sh*
 		rm /root/pihole_exclude_list.txt*
 	fi
-	#rm resolv_base.conf*
-	#rm pihole_exclude_list.txt
-	#rm update_lists.sh
+	
 	#rm update_blocklists_local_servers.sh
 	#rm blocklist_regexs_cg.txt
 	#rm *.1
