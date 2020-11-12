@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.2
+Version:  0.5.3
 Last Updated:  11/12/2020
 
 location: 
@@ -72,6 +72,9 @@ then
 		rm initial_setup.*
 		rm backup_dbs.*
 		rm upsert_lists.*
+		rm update_time.sh.*
+		rm resolv_base.conf.*
+		rm cgray_regex_blocks.txt.*
 	fi
 	
 	echo "Downloading latest versions... \r\n\r\n"
