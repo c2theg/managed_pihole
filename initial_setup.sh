@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.2                             \r\n
+Version:  0.5.3                             \r\n
 Last Updated:  11/12/2020
 
 location: 
@@ -36,7 +36,7 @@ then
     echo "update_lists.sh not in crontab. Adding."
 
     # run “At 04:20.” everyday
-    line="20 4 * * * /root/update_lists.sh >> /var/log/update_lists.log 2>&1"
+    line="20 4 * * * /root/update_lists.sh > /var/log/update_lists.log 2>&1"
     (crontab -u root -l; echo "$line" ) | crontab -u root -
 
     wait
@@ -56,7 +56,7 @@ then
 	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/configs/resolv_base.conf
 	cp resolv_base.conf /etc/resolv.conf
 	cp resolv_base.conf /etc/resolvconf/resolv.conf.d/base	
-	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/update_time.sh && chmod +u update_time.sh
+	sudo wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/update_time.sh && chmod u+x update_time.sh
 	#--------------------------------------------------------------------------------------------------------
     #echo "Add repo keys... "
     #apt-key adv --keyserver   keyserver.ubuntu.com --recv-keys 7638D0442B90D010
@@ -75,7 +75,7 @@ then
     sudo ./initial_setup.py
 
     wait
-	sh /root/update_time.sh
+	sh ./update_time.sh
 fi
 
 

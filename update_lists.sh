@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.5
+Version:  0.5.6
 Last Updated:  11/12/2020
 
 location: 
@@ -69,7 +69,7 @@ then
 	rm initial_setup.*
 	rm backup_dbs.*
 	rm upsert_lists.*
-	rm update_time.sh.*
+	rm update_time.*
 	rm resolv_base.conf.*
 	rm cgray_regex_blocks.txt.*
 
