@@ -68,8 +68,18 @@ then
     echo "RESOLVE_IPV6=yes" >> /etc/pihole/setupVars.conf
     echo "RESOLVE_IPV4=yes" >> /etc/pihole/setupVars.conf
     echo "NAMES_FROM_NETDB=true" >> /etc/pihole/setupVars.conf
-    #----------------------------------------------------------------
+    echo "DNS_FQDN_REQUIRED=true" >> /etc/pihole/setupVars.conf
+    echo "DNS_BOGUS_PRIV=true" >> /etc/pihole/setupVars.conf
 
+    #echo "PIHOLE_DNS_1=127.0.0.1#5053" >> /etc/pihole/setupVars.conf  # CLOUDFLARED DOH
+
+    sed -i '/PIHOLE_DNS_1=/c\'PIHOLE_DNS_1=1.1.1.2 /etc/pihole/setupVars.conf
+    sed -i '/PIHOLE_DNS_2=/c\'PIHOLE_DNS_2=9.9.9.9 /etc/pihole/setupVars.conf
+    echo "PIHOLE_DNS_3=208.67.222.222" >> /etc/pihole/setupVars.conf
+    echo "PIHOLE_DNS_4=2606:4700:4700::1111" >> /etc/pihole/setupVars.conf
+    echo "PIHOLE_DNS_5=8.8.8.8" >> /etc/pihole/setupVars.conf
+    echo "PIHOLE_DNS_6=2620:119:53::53" >> /etc/pihole/setupVars.conf
+    #-------------------------------------------------------------------------
     wait
     chmod u+x initial_setup.py
     sudo ./initial_setup.py
