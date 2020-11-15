@@ -1,5 +1,5 @@
 # By: Christopher Gray
-#  Updated: 11/11/2020
+#  Updated: 11/14/2020
 #=================
 ((^)|(\.))tp-link\.
 #--- Generic ---
@@ -18,7 +18,7 @@
 ^mads\.
 ^pixels?[-.]
 ^stat(s|istics)?[0-9]*[_.-]
-^track(ing)?[0-9]*[_.-]
+#^track(ing)?[0-9]*[_.-] # Breaks some important things
 ^adse?rv(e(rs?)?|ices?)?[0-9]*[-.]
 ^clicks?[-.]
 ^telemetry[-.]
