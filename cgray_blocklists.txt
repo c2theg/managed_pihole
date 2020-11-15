@@ -12,8 +12,8 @@
 #
 #
 #
-# Version:  0.4.1
-# Last Updated:  11/14/2020
+# Version:  0.4.2
+# Last Updated:  11/15/2020
 # Changed:
 #   New for pihole 5 - importer script
 #
@@ -143,8 +143,8 @@ https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/list_snapchat.tx
 ## - Personal
 https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_kids_games.txt
 https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_kids_chat.txt
-https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/url_general_blocklist.txt
 https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_domains_cg.txt
+https://raw.githubusercontent.com/c2theg/managed_pihole/raw/main/url_general_blocklist.txt
 
 #--- Porn ---
 https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list
