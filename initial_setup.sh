@@ -20,8 +20,8 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.3                             \r\n
-Last Updated:  11/12/2020
+Version:  0.5.5      \r\n
+Last Updated:  11/14/2020
 
 location: 
 
@@ -76,7 +76,7 @@ then
     sed -i '/PIHOLE_DNS_1=/c\'PIHOLE_DNS_1=1.1.1.2 /etc/pihole/setupVars.conf
     sed -i '/PIHOLE_DNS_2=/c\'PIHOLE_DNS_2=9.9.9.9 /etc/pihole/setupVars.conf
     echo "PIHOLE_DNS_3=208.67.222.222" >> /etc/pihole/setupVars.conf
-    echo "PIHOLE_DNS_4=2606:4700:4700::1111" >> /etc/pihole/setupVars.conf
+    echo "PIHOLE_DNS_4=2606:4700:4700::1112" >> /etc/pihole/setupVars.conf
     echo "PIHOLE_DNS_5=8.8.8.8" >> /etc/pihole/setupVars.conf
     echo "PIHOLE_DNS_6=2620:119:53::53" >> /etc/pihole/setupVars.conf
     #-------------------------------------------------------------------------
