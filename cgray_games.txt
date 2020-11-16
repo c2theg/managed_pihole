@@ -1,3 +1,43 @@
+# Custom blocklist - by: Chris Gray 
+# Date:  11/16/2020
+# Updated: 
+# Fetch the latest version of this file: 
+# https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_games.txt
+# ========================================================================================
+# Roblox
+roblox.com
+www.roblox.com
+web.roblox.com
+accountsettings.roblox.com
+api.roblox.com
+apis.roblox.com
+avatar.roblox.com
+auth.roblox.com
+chat.roblox.com
+clientsettingscdn.roblox.com
+gameinternationalization.roblox.com
+presence.roblox.com
+ephemeralcounters.api.roblox.com
+games.roblox.com
+friends.roblox.com
+realtime.roblox.com
+notifications.roblox.com
+ecsv2.roblox.com
+assetgame.roblox.com
+assetdelivery.roblox.com
+images.rbxcdn.com
+thumbnails.roblox.com
+locale.roblox.com
+economy.roblox.com
+catolog.roblox.com
+# *.rbxcdn.com -- CANT DO WILDCARDS - ugh!
+t5.rbxcdn.com
+c7.rbxcdn.com
+t1.rbxcdn.com
+t0.rbxcdn.com
+t1hw.rbxcdn.com
+# --------- Misc ----------------
+discord.co
+#--------------------------------
 epicgames.com
 datarouter.ol.epicgames.com
-*.epicgames.com

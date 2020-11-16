@@ -1,4 +1,12 @@
+# Social blocklist - by: Chris Gray 
+# Date:  11/16/2020
+# Updated: 
+# Fetch the latest version of this file: 
+# https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
+# ========================================================================================
 twitter.com
 www.twitter.com
 facebook.com
 www.facebook.com
+instagram.com
+www.instagram.com
