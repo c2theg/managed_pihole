@@ -3,8 +3,8 @@
 #-------------------------------------------------------------
 #  * Copyright (c) 2021 Christopher Gray
 #  * All rights reserved.  Proprietary and Confidential.
-# Version: 0.0.37
-# Updated: 11/7/2020
+# Version: 0.0.38
+# Updated: 11/16/2020
 # ChangeLog:
 #
 # Sources:
@@ -37,10 +37,7 @@ print ("stopping pihole-FTL... \r\n \r\n")
 os.system("pihole -up")
 #----------------------
 print ("stopping pihole-FTL... \r\n \r\n")
-os.system("pihole-FTL stop")
-#stream = os.popen('stop pihole-FTL')
-#output = stream.read()
-#print (str(output))
+os.system("sudo service pihole-FTL stop")
 
 #--- Connect ---
 conn = None
@@ -134,11 +131,7 @@ if dbCommit == True:
     conn.close()
 
     print ("Starting pihole FTL (Faster then light) DNS Sever... \r\n")
-    os.system("start pihole-FTL")
-    #stream = os.popen('start pihole-FTL')
-    #output = stream.read()
-    #print (str(output))
-
+    os.system("sudo service pihole-FTL start")
 
     print ("Updating DNS lists... \r\n")
     os.system("pihole restartdns reload-lists")
