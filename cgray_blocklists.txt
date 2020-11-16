@@ -162,12 +162,9 @@ https://openphish.com/feed.txt
 https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/list_snapchat.txt
 
 ## - Personal
-# https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_regexs_cg.txt
-# https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_kids_games.txt
-# https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_kids_chat.txt
-https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/url_general_blocklist.txt
-https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_domains_cg.txt
-
+###- https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_regexs_cg.txt
+# https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/url_general_blocklist.txt
+# https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_domains_cg.txt
 
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_chat.txt
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_games.txt
