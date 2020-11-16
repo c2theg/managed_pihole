@@ -3,8 +3,8 @@
 #-------------------------------------------------------------
 #  * Copyright (c) 2021 Christopher Gray
 #  * All rights reserved.  Proprietary and Confidential.
-# Version: 0.0.13
-# Updated: 11/12/2020
+# Version: 0.0.14
+# Updated: 11/16/2020
 # ChangeLog:
 #
 # Sources:
@@ -61,17 +61,18 @@ except Error as e:
 #---------------------------------------------------------------------------
 #--- Add groups ---
 #c.execute("INSERT OR IGNORE INTO 'group' (id, name) VALUES (1, 'default')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (2, 'Children_BAD', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Very restrictive')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (3, 'Children_Good', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks malware,ads and porn')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (4, 'Children_Education', 1, " + UnixEpoch + "," + UnixEpoch + ", 'For Remote Learning, Allows: Youtube / Google Classroom, Zoom')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (5, 'Children_Fun', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Games, Chat, Streaming Video & Audio')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (6, 'Children_Bed', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks almost everything, so they go to sleep')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (7, 'Adults', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Allows porn, blocks everything else')")
+cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (2, 'Children', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: porn, ads, fake news')")
+cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (3, 'Children_Fun', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Games, Chat, Streaming Video & Audio')")
+
+#cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (4, 'Children_Good', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks malware,ads and porn')")
+#cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (5, 'Children_Education', 1, " + UnixEpoch + "," + UnixEpoch + ", 'For Remote Learning, Allows: Youtube / Google Classroom, Zoom')")
+#cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (6, 'Children_Bed', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: almost everything, so they go to sleep')")
+#cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (7, 'Adults', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: porn, mature content')")
 
 
 #--- Add three clients ---
 cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.101'," + UnixEpoch + "," + UnixEpoch + ", '<Person_Name> - <Device> (Public MAC) - <usecase> - <conn type>')")
-cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.102'," + UnixEpoch + "," + UnixEpoch + ", 'Son - iPad')")
+#cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.102'," + UnixEpoch + "," + UnixEpoch + ", 'Son - iPad')")
 cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.103'," + UnixEpoch + "," + UnixEpoch + ", 'Son - iPad (Public Addr')")
 cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comment) VALUES ('192.168.0.104'," + UnixEpoch + "," + UnixEpoch + ", 'Son - Laptop - school - wifi')")
 
@@ -91,22 +92,15 @@ cur.execute("INSERT OR IGNORE INTO 'client' (ip, date_added, date_modified, comm
 
 #-------------- Add clients to groups -----------------------
 #--- Son ---
+cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (1, 1)")
 cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (2, 1)")
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (4, 1)")
+cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (3, 1)")
 
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (2, 4)")
 cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (2, 2)")
 cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (3, 2)")
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (4, 4)")
-
 #--- Daugther ---
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (5, 1)")
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (6, 1)")
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (7, 1)")
-
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (5, 3)")
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (6, 3)")
-cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (6, 4)")
+cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (4, 1)")
+cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (4, 2)")
 
 #--- Mom ---
 # cur.execute("INSERT OR IGNORE INTO client_by_group (client_id, group_id) VALUES (8, 7)")
