@@ -12,12 +12,12 @@
 #
 #
 #
-# Version:  0.4.1
+# Version:  0.4.2
 # Last Updated:  11/16/2020
 # Changed:
 #   New for pihole 5 - importer script
 #
-# Source:  https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/pihole_blocklist.sh
+# Source:  https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_blocklists.txt
 #
 #---------------------------------------------------------------------------------------
 ## ---------- Old or Broken lists that dont work with pihole, but might with other solutions -------------------------
@@ -46,9 +46,6 @@ https://raw.githubusercontent.com/Ultimate-Hosts-Blacklist/MalwareDomainList.com
 
 ## Cameleon
 http://sysctl.org/cameleon/hosts
-
-## Zeustracker
-https://zeustracker.abuse.ch/blocklist.php?download=domainblocklist
 
 ## Disconnect.me Tracking
 https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
@@ -137,7 +134,6 @@ https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser
 https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/youtubelist.txt
 https://filters.adtidy.org/windows/filters/15.txt
 
-
 ## -- https://blocklistproject.github.io/Lists/
 https://blocklistproject.github.io/Lists/alt-version/malware-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/phishing-nl.txt
@@ -151,13 +147,12 @@ https://blocklistproject.github.io/Lists/alt-version/piracy-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/youtube-nl.txt
 
 ## - OpenPhish
-https://openphish.com/feed.txt
+#https://openphish.com/feed.txt
 
 ## - Snapchat
 https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/list_snapchat.txt
 
 ## - Personal
-###- https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_regexs_cg.txt
 # https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/url_general_blocklist.txt
 # https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_domains_cg.txt
 
@@ -169,4 +164,3 @@ https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list
 https://raw.githubusercontent.com/chadmayfield/pihole-blocklists/master/lists/pi_blocklist_porn_top1m.list
 https://blocklistproject.github.io/Lists/alt-version/porn-nl.txt
-
