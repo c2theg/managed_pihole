@@ -61,10 +61,10 @@ except Error as e:
 #---------------------------------------------------------------------------
 #--- Add groups ---
 #c.execute("INSERT OR IGNORE INTO 'group' (id, name) VALUES (1, 'default')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (2, 'Children', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Porn only')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (3, 'Children_Fun', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Games, Chat. ie: Roblox, Snapchat/TikTok')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (4, 'Children_Video', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Streaming Video. ie: Youtube/Google Video')")
-cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (5, 'Children_Social', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Social Media. ie: Facebook/Instagram/Twitter')")
+cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (2, 'Blocks_Porn', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Porn only')")
+cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (3, 'Blocks_Games_Chat', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Games, Chat. ie: Roblox, Snapchat/TikTok')")
+cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (4, 'Blocks_Video', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Streaming Video. ie: Youtube/Google Video')")
+cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (5, 'Blocks_Social', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Social Media. ie: Facebook/Instagram/Twitter')")
 
 
 #cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (4, 'Children_Good', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks malware,ads and porn')")
