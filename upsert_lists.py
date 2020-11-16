@@ -3,7 +3,7 @@
 #-------------------------------------------------------------
 #  * Copyright (c) 2021 Christopher Gray
 #  * All rights reserved.  Proprietary and Confidential.
-# Version: 0.0.38
+# Version: 0.0.39
 # Updated: 11/16/2020
 # ChangeLog:
 #
@@ -130,19 +130,6 @@ if dbCommit == True:
     print ("\r\n \r\n Closing sqlite connection. \r\n")
     conn.close()
 
-    print ("Starting pihole FTL (Faster then light) DNS Sever... \r\n")
-    os.system("sudo service pihole-FTL start")
-
-    print ("Updating DNS lists... \r\n")
-    os.system("pihole restartdns reload-lists")
-    #stream = os.popen('pihole restartdns reload-lists')
-    #output = stream.read()
-    #print (str(output))
-
-
-    print ("Updating gravity domains... \r\n")
-    os.system("pihole -g")
-
 else:
     print ("** NOTHING TO Up/sert ***")
     # We can also close the connection if we are done with it.
@@ -150,5 +137,17 @@ else:
     print ("\r\n \r\n Closing sqlite connection. \r\n")
     conn.close()
 #------------------------------------------------
+
+print ("Starting pihole FTL (Faster then light) DNS Sever... \r\n")
+os.system("sudo service pihole-FTL start")
+
+print ("Updating DNS lists... \r\n")
+os.system("pihole restartdns reload-lists")
+#stream = os.popen('pihole restartdns reload-lists')
+#output = stream.read()
+#print (str(output))
+
+print ("Updating gravity domains... \r\n")
+os.system("pihole -g")
 
 print ("DONE! ")
