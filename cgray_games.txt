@@ -1,5 +1,5 @@
 # Custom blocklist - by: Chris Gray 
-# Date:  11/16/2020
+# Date:  11/17/2020
 # Updated: 
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_games.txt
@@ -38,6 +38,10 @@ t0.rbxcdn.com
 t1hw.rbxcdn.com
 # --------- Misc ----------------
 discord.co
+gateway.discord.gg
+
 #--------------------------------
 epicgames.com
 datarouter.ol.epicgames.com
+catalog.gamepass.com
+
