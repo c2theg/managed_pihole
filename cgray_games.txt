@@ -4,7 +4,7 @@
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_games.txt
 # ========================================================================================
-# Roblox
+#--- Roblox ---
 roblox.com
 www.roblox.com
 web.roblox.com
@@ -39,11 +39,11 @@ rbxcdn.com
 rbxtrk.com
 roblox.plus
 
-# --------- Discord ----------------
+#--- Discord ---
 discord.co
 gateway.discord.gg
 
-#-------- Epic ------------------------
+#--- Epic ---
 epicgames.com
 epicgames.net
 unrealengine.com
@@ -51,19 +51,16 @@ datarouter.ol.epicgames.com
 catalog.gamepass.com
 epicgames-download1.akamaized.net
 
-#----- Minecraft -----
+#--- Minecraft ---
 minecraft.net
 minecraftprod.rtep.msgamestudios.com
 mojang.com
 
-#---- blizzard -----
+#--- Blizzard ---
 battle.net
 blizzard.com
 
-#---- Misc ----
-candycrush4.king.com
-
-#--- ea ----
+#--- EA ----
 ea.com
 eamobile.com
 tnt-ea.com
@@ -107,3 +104,6 @@ sonyentertainmentnetwork.com
 
 #--- Rockstar ---
 rockstargames.com
+
+#--- Misc ---
+candycrush4.king.com
