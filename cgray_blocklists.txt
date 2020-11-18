@@ -20,6 +20,11 @@
 # Source:  https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_blocklists.txt
 #
 #---------------------------------------------------------------------------------------
+# https://www.dshield.org/feeds/suspiciousdomains_Low.txt
+# https://www.dshield.org/feeds/suspiciousdomains_Medium.txt
+# https://www.dshield.org/feeds/suspiciousdomains_High.txt
+
+
 https://raw.githubusercontent.com/mhhakim/pihole-blocklist/master/list.txt
 
 #------- Sources: https://firebog.net/ -------
@@ -27,7 +32,7 @@ https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-p
 https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/gambling/hosts
 
 ## MalwareDomains
-https://raw.githubusercontent.com/Ultimate-Hosts-Blacklist/MalwareDomainList.com/master/volatile.list
+# https://raw.githubusercontent.com/Ultimate-Hosts-Blacklist/MalwareDomainList.com/master/volatile.list
 
 ## Cameleon
 http://sysctl.org/cameleon/hosts
@@ -67,9 +72,6 @@ https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts
 https://v.firebog.net/hosts/static/w3kbl.txt
 https://v.firebog.net/hosts/BillStearns.txt
 https://sysctl.org/cameleon/hosts
-https://www.dshield.org/feeds/suspiciousdomains_Low.txt
-https://www.dshield.org/feeds/suspiciousdomains_Medium.txt
-https://www.dshield.org/feeds/suspiciousdomains_High.txt
 https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt
 https://hostsfile.org/Downloads/hosts.txt
 https://someonewhocares.org/hosts/zero/hosts
