@@ -1,14 +1,47 @@
 # Social blocklist - by: Chris Gray 
 # Date:  11/16/2020
-# Updated: 
+# Version: 0.0.7
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
+# Sources:
+#    https://github.com/jmdugan/blocklists/tree/master/corporations
 # ========================================================================================
 twitter.com
 www.twitter.com
+about.twitter.com
+abs.twimg.com
+access.twitter.com
+ads.twitter.com
+amp.twimg.com
+analytics.twitter.com
+api-test.twitter.com
+api.twitter.com
+apps.twitter.com
+blog.twitter.com
+brand.twitter.com
+business.twitter.com
+calendar.twitter.com
+cards-dev.twitter.com
+cards.twitter.com
+cdn.syndication.twimg.com
+cdn.syndication.twitter.com
+click.e.twitter.com
+content.twitter.com
+syndication.twitter.com
+t.co
+twimg0-0.akamaihd.net
+upload.twitter.com
+userstream.twitter.com
+video.twitter.com
+widgets.platform.twitter.com
+widgets.twimg.com
+www.ads-twitter.com
+www.t.co
+www.twitter.com
+www2.twitter.com
+www4.twitter.com
 
 #--- facebook ---
-# - https://github.com/jmdugan/blocklists/tree/master/corporations/facebook
 facebook.com
 www.facebook.com
 0-edge-chat.facebook.com
@@ -32,10 +65,34 @@ investor.fb.com
 live.fb.com
 
 #--- instagram ---
-
+api.instagram.com
+images.instagram.com
 instagram.com
 www.instagram.com
+
+#--- Whatsapp ---
+account.whatsapp.com
+alpha.whatsapp.com
+api.whatsapp.com
+autodiscover.whatsapp.com
+beta.whatsapp.com
+betablog.whatsapp.com
+blog.whatsapp.com
+chat.whatsapp.com
+g.whatsapp.net
+gamma.whatsapp.com
+graph.whatsapp.net
+m.whatsapp.com
+media.whatsapp.com
+mme.whatsapp.net
+mme6.whatsapp.net
+whatsapp-cdn-shv-02-sin6.fbcdn.net
+whatsapp.com
+www-cdn.whatsapp.net
+www.whatsapp.com
+wwwl.whatsapp.com
 
 #--- Discord ---
 discord.co
 gateway.discord.gg
+
