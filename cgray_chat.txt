@@ -1,6 +1,6 @@
 # Social blocklist - by: Chris Gray 
-# Date:  11/16/2020
-# Updated: 
+# Date:  11/17/2020
+# Version: 0.0.19
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_chat.txt
 # ========================================================================================
@@ -52,6 +52,74 @@ verification-va.byteoversea.com
 www.tiktok.com
 s16.tiktokcdn.com
 
+ads.tiktok.com
+getstarted.tiktok.com
+m.tiktok.com
+careers.tiktok.com
+business.tiktok.com
+newsroom.tiktok.com
+t.tiktok.com
+activity.tiktok.com
+support.tiktok.com
+tiktokv.com
+log.tiktokv.com
+ib.tiktokv.com
+api.tiktokv.com
+api-h2.tiktokv.com
+tiktokcdn.com
+v16m.tiktokcdn.com
+v19.tiktokcdn.com
+v16a.tiktokcdn.com
+p16-tiktokcdn-com.akamaized.net
+v16-tiktokcdn-com.akamaized.net
+musical.ly
+mon.musical.ly
+api2-16-h2.musical.ly
+api2.musical.ly
+log2.musical.ly
+api2-21-h2.musical.ly
+musically.ly
+
+#--- SnapChat ---
+snapchat.com
+www.snapchat.com
+ads.snapchat.com
+adsapi.snapchat.com
+accounts.snapchat.com
+geofilters.snapchat.com
+forbusiness.snapchat.com
+business.snapchat.com
+tr.snapchat.com
+businesshelp.snapchat.com
+snapcamera.snapchat.com
+support.snapchat.com
+snapads.com
+snapkit.com
+app-analytics.snapchat.com
+
+studio-crash.snapchat.com
+feelinsonice-hrd.appspot.com
+feelinsonice.appspot.com
+feelinsonice.l.google.com
+appspot.l.google.com
+data.flurry.com
+feelinsonice.com
+cf-st.sc-cdn.net
+snapchat.appspot.com
+sc-analytics.appspot.com
+www.feelinsonice.com
+
+
+#--- Instagram ---
+instagram.com
+www.instagram.com
+i.instagram.com
+l.instagram.com
+help.instagram.com
+business.instagram.com
+scontent-msp1-1.cdninstagram.com
+instagram.c10r.facebook.com
+graph.instagram.com
 
 #-- omegle.com --
 omegle.com
@@ -64,17 +132,12 @@ t.irtyd.com
 omegleadultchat.online
 jerkmate.com
 
-
-#-- Snapchat --
-snapchat.com
-studio-crash.snapchat.com
-feelinsonice-hrd.appspot.com
-feelinsonice.appspot.com
-feelinsonice.l.google.com
-appspot.l.google.com
-data.flurry.com
-feelinsonice.com
-cf-st.sc-cdn.net
-snapchat.appspot.com
-sc-analytics.appspot.com
-www.feelinsonice.com
+#---  Whatsapp ---
+whatsapp.com
+whatsapp.net
+web.whatsapp.com
+api.whatsapp.com
+chat.whatsapp.com
+faq.whatsapp.com
+blog.whatsapp.com
+translate.whatsapp.com
