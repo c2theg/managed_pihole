@@ -12,30 +12,15 @@
 #
 #
 #
-# Version:  0.4.2
-# Last Updated:  11/16/2020
+# Version:  0.4.5
+# Last Updated:  11/17/2020
 # Changed:
 #   New for pihole 5 - importer script
 #
 # Source:  https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_blocklists.txt
 #
 #---------------------------------------------------------------------------------------
-## ---------- Old or Broken lists that dont work with pihole, but might with other solutions -------------------------
-## See https://github.com/StevenBlack/hosts for details
-## https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling-porn-social/hosts
-## https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling/hosts
-## https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-## https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews/hosts
-
-## uBlock Origin lists
-#https://www.malwaredomainlist.com/hostslist/hosts.txt - DOWN as of 1/12/2020
-
-#https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt   #  Format: Adblock (list type not supported)
-#https://easylist.to/easylist/easylist.txt    #  Format: Adblock (list type not supported)
-#https://easylist.to/easylist/easyprivacy.txt   #  Format: Adblock (list type not supported)
-#https://easylist.to/easylist/fanboy-annoyance.txt   #  Format: Adblock (list type not supported)
-#https://v.firebog.net/hosts/Kowabit.txt
-#https://www.joewein.net/dl/bl/dom-bl-base.txt
+https://raw.githubusercontent.com/mhhakim/pihole-blocklist/master/list.txt
 
 #------- Sources: https://firebog.net/ -------
 https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-porn/hosts
@@ -69,6 +54,7 @@ https://www.spamhaus.org/drop/drop.txt
 https://zerodot1.gitlab.io/CoinBlockerLists/hosts
 
 ## - blocklist.site
+#https://justdomains.github.io/blocklists/lists/adguarddns-justdomains.txt
 https://blocklist.site/app/dl/phishing
 ## https://blocklist.site/app/dl/fakenews
 https://blocklist.site/app/dl/malware
@@ -161,6 +147,8 @@ https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_games.txt
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 
 #--- Porn ---
-https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list
-https://raw.githubusercontent.com/chadmayfield/pihole-blocklists/master/lists/pi_blocklist_porn_top1m.list
+https://raw.githubusercontent.com/mhhakim/pihole-blocklist/master/porn.txt
+# https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list
+# https://raw.githubusercontent.com/chadmayfield/pihole-blocklists/master/lists/pi_blocklist_porn_top1m.list
 https://blocklistproject.github.io/Lists/alt-version/porn-nl.txt
+

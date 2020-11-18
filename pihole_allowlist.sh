@@ -18,8 +18,8 @@ echo "
 
 This really is meant to be run under Rasbian / PiHole / Ubuntu 16.04 LTS +
 
-Version:  0.0.22
-Last Updated:  11/16/2020
+Version:  0.0.34
+Last Updated:  11/17/2020
 
 "
 #--------------------------
@@ -36,7 +36,7 @@ pihole -w cloudflare.com  1dot1dot1dot1.cloudflare-dns.com  cloudflare-dns.com
 pihole -w time.cloudflare.com time.google.com nist.gov pool.ntp.org
 
 #--- Google
-pihole -w google.com www.google.com clients2.google.com clients3.google.com clients4.google.com dl.google.com android.clients.google.com 
+pihole -w google.com www.google.com classroom.google.com docs.google.com clients2.google.com clients3.google.com clients4.google.com dl.google.com android.clients.google.com fonts.gstatic.com fonts.gstatic.com
 #pihole -w s.youtube.com video-stats.l.google.com youtu.be 
 pihole -w connectivitycheck.android.com connectivitycheck.gstatic.com
 pihole -w ajax.googleapis.com
@@ -44,6 +44,10 @@ pihole -w ajax.googleapis.com
 #--- Microsoft
 # Windows uses this to verify connectivity to Internet
 pihole -w www.msftncsi.com
+### Windows Defender
+wdcp.microsoft.com
+wdcpalt.microsoft.com
+tsfe.trafficshaping.dsp.mp.microsoft.com
 # The rest
 pihole -w outlook.office365.com products.office.com c.s-microsoft.com i.s-microsoft.com login.live.com protection.outlook.com
 pihole -w clientconfig.passport.net officeclient.microsoft.com
