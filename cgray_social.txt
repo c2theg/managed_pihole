@@ -1,6 +1,6 @@
 # Social blocklist - by: Chris Gray 
 # Date:  11/17/2020
-# Version: 0.0.7
+# Version: 0.0.9
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 # Sources:
@@ -64,7 +64,16 @@ newsroom.fb.com
 investor.fb.com
 live.fb.com
 
-#--- instagram ---
+#--- Instagram ---
+instagram.com
+www.instagram.com
+i.instagram.com
+l.instagram.com
+help.instagram.com
+business.instagram.com
+scontent-msp1-1.cdninstagram.com
+instagram.c10r.facebook.com
+graph.instagram.com
 api.instagram.com
 images.instagram.com
 instagram.com
@@ -95,4 +104,3 @@ wwwl.whatsapp.com
 #--- Discord ---
 discord.co
 gateway.discord.gg
-

@@ -1,6 +1,6 @@
 # Social blocklist - by: Chris Gray 
 # Date:  11/17/2020
-# Version: 0.0.19
+# Version: 0.0.20
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_chat.txt
 # ========================================================================================
@@ -109,17 +109,15 @@ snapchat.appspot.com
 sc-analytics.appspot.com
 www.feelinsonice.com
 
-
-#--- Instagram ---
-instagram.com
-www.instagram.com
-i.instagram.com
-l.instagram.com
-help.instagram.com
-business.instagram.com
-scontent-msp1-1.cdninstagram.com
-instagram.c10r.facebook.com
-graph.instagram.com
+#---  Whatsapp ---
+whatsapp.com
+whatsapp.net
+web.whatsapp.com
+api.whatsapp.com
+chat.whatsapp.com
+faq.whatsapp.com
+blog.whatsapp.com
+translate.whatsapp.com
 
 #-- omegle.com --
 omegle.com
@@ -131,13 +129,3 @@ www.camegle.net
 t.irtyd.com
 omegleadultchat.online
 jerkmate.com
-
-#---  Whatsapp ---
-whatsapp.com
-whatsapp.net
-web.whatsapp.com
-api.whatsapp.com
-chat.whatsapp.com
-faq.whatsapp.com
-blog.whatsapp.com
-translate.whatsapp.com
