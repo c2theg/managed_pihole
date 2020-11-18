@@ -6,7 +6,36 @@
 # ========================================================================================
 twitter.com
 www.twitter.com
+
+#--- facebook ---
+# - https://github.com/jmdugan/blocklists/tree/master/corporations/facebook
 facebook.com
 www.facebook.com
+0-edge-chat.facebook.com
+a.ns.facebook.com
+api.facebook.com
+apps.facebook.com
+badge.facebook.com
+beta.facebook.com
+code.facebook.com
+connect.facebook.com
+graph.facebook.com
+login.facebook.com
+m.facebook.com
+www.login.facebook.com
+beta.facebook.com
+developers.facebook.com
+fbcdn.net
+fb.com
+newsroom.fb.com
+investor.fb.com
+live.fb.com
+
+#--- instagram ---
+
 instagram.com
 www.instagram.com
+
+#--- Discord ---
+discord.co
+gateway.discord.gg
