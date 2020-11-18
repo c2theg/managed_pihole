@@ -1,6 +1,6 @@
 # Custom blocklist - by: Chris Gray 
 # Date:  11/17/2020
-# Updated: 
+# Version: 0.0.14
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_games.txt
 # ========================================================================================
@@ -30,18 +30,80 @@ thumbnails.roblox.com
 locale.roblox.com
 economy.roblox.com
 catolog.roblox.com
-# *.rbxcdn.com -- CANT DO WILDCARDS - ugh!
 t5.rbxcdn.com
 c7.rbxcdn.com
 t1.rbxcdn.com
 t0.rbxcdn.com
 t1hw.rbxcdn.com
-# --------- Misc ----------------
+rbxcdn.com
+rbxtrk.com
+roblox.plus
+
+# --------- Discord ----------------
 discord.co
 gateway.discord.gg
 
-#--------------------------------
+#-------- Epic ------------------------
 epicgames.com
+epicgames.net
+unrealengine.com
 datarouter.ol.epicgames.com
 catalog.gamepass.com
+epicgames-download1.akamaized.net
 
+#----- Minecraft -----
+minecraft.net
+minecraftprod.rtep.msgamestudios.com
+mojang.com
+
+#---- blizzard -----
+battle.net
+blizzard.com
+
+#---- Misc ----
+candycrush4.king.com
+
+#--- ea ----
+ea.com
+eamobile.com
+tnt-ea.com
+
+#--- Riot ---
+riotgames.com
+riotcdn.net
+leagueoflegends.com
+
+#--- Xbox ---
+gamepass.com
+xboxab.com
+xboxab.net
+xboxlive.com
+xboxlive.com.akadns.net
+xboxlive.com.c.footprint.net
+
+#--- Steam ---
+steamcdn-a.akamaihd.net
+steamcommunity-a.akamaihd.net
+steamcommunity.com
+steamcontent.com
+steampowered.com
+steamstatic.com
+steamusercontent.com
+steamuserimages-a.akamaihd.net
+valvesoftware.com
+
+#--- Twitch ---
+ext-twitch.tv
+jtvnw.net
+ttvnw.net
+twitch.tv
+twitchcdn.net
+twitchsvc.net
+
+#--- Playstation ---
+playstation.com
+playstation.net
+sonyentertainmentnetwork.com
+
+#--- Rockstar ---
+rockstargames.com
