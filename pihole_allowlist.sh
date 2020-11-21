@@ -37,7 +37,6 @@ pihole -w time.cloudflare.com time.google.com nist.gov pool.ntp.org
 
 #--- Google
 pihole -w google.com www.google.com classroom.google.com docs.google.com clients2.google.com clients3.google.com clients4.google.com dl.google.com android.clients.google.com fonts.gstatic.com fonts.gstatic.com
-#pihole -w s.youtube.com video-stats.l.google.com youtu.be 
 pihole -w connectivitycheck.android.com connectivitycheck.gstatic.com
 pihole -w ajax.googleapis.com
 
