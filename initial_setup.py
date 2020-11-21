@@ -3,8 +3,8 @@
 #-------------------------------------------------------------
 #  * Copyright (c) 2021 Christopher Gray
 #  * All rights reserved.  Proprietary and Confidential.
-# Version: 0.0.14
-# Updated: 11/16/2020
+# Version: 0.0.15
+# Updated: 11/21/2020
 # ChangeLog:
 #
 # Sources:
@@ -65,6 +65,7 @@ cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_
 cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (3, 'Blocks_Games_Chat', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Games, Chat. ie: Roblox, Snapchat/TikTok')")
 cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (4, 'Blocks_Video', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Streaming Video. ie: Youtube/Google Video')")
 cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (5, 'Blocks_Social', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks: Social Media. ie: Facebook/Instagram/Twitter')")
+cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (6, 'Allow_Adult', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Allow custom domains')")
 
 
 #cur.execute("INSERT OR IGNORE INTO 'group' (id, name, enabled, date_added, date_modified, description) VALUES (4, 'Children_Good', 1, " + UnixEpoch + "," + UnixEpoch + ", 'Blocks malware,ads and porn')")
