@@ -66,6 +66,7 @@ investor.fb.com
 live.fb.com
 edge-mqtt.facebook.com
 fbcdn.net
+scontent.xx.fbcdn.net
 
 #--- Instagram ---
 instagram.com
@@ -109,3 +110,9 @@ static.whatsapp.net
 #--- Discord ---
 discord.co
 gateway.discord.gg
+
+
+#---- Reddit ----
+oauth.reddit.com
+reddit.com
+www.reddit.com
