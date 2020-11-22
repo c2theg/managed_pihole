@@ -67,6 +67,7 @@ live.fb.com
 edge-mqtt.facebook.com
 fbcdn.net
 scontent.xx.fbcdn.net
+web.facebook.com
 
 #--- Instagram ---
 instagram.com
