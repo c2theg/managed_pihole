@@ -1,6 +1,6 @@
 # Social blocklist - by: Chris Gray 
-# Date:  11/17/2020
-# Version: 0.0.9
+# Date:  11/21/2020
+# Version: 0.0.11
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 # Sources:
@@ -106,13 +106,13 @@ www.whatsapp.com
 wwwl.whatsapp.com
 static.whatsapp.net
 
-
 #--- Discord ---
 discord.co
 gateway.discord.gg
 
 
 #---- Reddit ----
-oauth.reddit.com
 reddit.com
 www.reddit.com
+oauth.reddit.com
+gql.reddit.com
