@@ -89,7 +89,6 @@ netflix.com
 *.nflxso.net
 yahoo.com
 getpocket.cdn.mozilla.net
-linkedin.com
 amazon.com
 *.amazon.com
 *.amazonaws.com
@@ -145,8 +144,9 @@ api.discovery.com
 ctldl.windowsupdate.com
 outlook.office.com
 time.samsungcloudsolution.com
-*.linkedin.com
 linkedin.com
+www.linkedin.com
+*.linkedin.com
 zoom.us
 *.zoom.us
 *.verizonmedia.com
