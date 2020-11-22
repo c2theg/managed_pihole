@@ -53,6 +53,7 @@ beta.facebook.com
 code.facebook.com
 connect.facebook.com
 graph.facebook.com
+b-graph.facebook.com
 login.facebook.com
 m.facebook.com
 www.login.facebook.com
@@ -63,6 +64,8 @@ fb.com
 newsroom.fb.com
 investor.fb.com
 live.fb.com
+edge-mqtt.facebook.com
+fbcdn.net
 
 #--- Instagram ---
 instagram.com
@@ -100,6 +103,8 @@ whatsapp.com
 www-cdn.whatsapp.net
 www.whatsapp.com
 wwwl.whatsapp.com
+static.whatsapp.net
+
 
 #--- Discord ---
 discord.co
