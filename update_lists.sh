@@ -79,16 +79,17 @@ then
 	fi
 
 	echo "Downloading latest versions... \r\n\r\n"
-    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/update_lists.sh
+        sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/update_lists.sh
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_blocklists.txt
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/pihole_allowlist.sh
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/pihole_exclude_list.txt
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/blocklist_regexs_cg.txt
 
-    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.sh
-    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.py
-    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/backup_dbs.py
-    sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/upsert_lists.py
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.sh
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.py
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/backup_dbs.py
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/upsert_lists.py
+
 
     #--- set permissions ---
     chmod u+x *.sh
