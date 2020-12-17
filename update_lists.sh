@@ -20,8 +20,8 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.6
-Last Updated:  11/12/2020
+Version:  0.5.7
+Last Updated:  12/16/2020
 
 location: 
 
