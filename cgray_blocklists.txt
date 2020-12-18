@@ -12,8 +12,8 @@
 #
 #
 #
-# Version:  0.4.6
-# Last Updated:  12/16/2020
+# Version:  0.4.7
+# Last Updated:  12/18/2020
 # Changed:
 #   New for pihole 5 - importer script
 #
@@ -65,8 +65,6 @@ https://blocklist.site/app/dl/scam
 https://blocklist.site/app/dl/tracking
 https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts_without_controversies.txt
 https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts
-https://v.
-/hosts/static/w3kbl.txt
 https://v.firebog.net/hosts/BillStearns.txt
 https://sysctl.org/cameleon/hosts
 https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt
@@ -101,7 +99,6 @@ https://v.firebog.net/hosts/Airelle-trc.txt
 https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareHosts.txt
 https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt
 https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt
-https://mirror1.malwaredomains.com/files/justdomains
 https://v.firebog.net/hosts/Prigent-Malware.txt
 https://mirror.cedia.org.ec/malwaredomains/immortal_domains.txt
 https://www.malwaredomainlist.com/hostslist/hosts.txt
@@ -132,12 +129,6 @@ https://blocklistproject.github.io/Lists/alt-version/gambling-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/piracy-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/youtube-nl.txt
 
-## - OpenPhish
-#https://openphish.com/feed.txt
-
-## - Snapchat
-https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/list_snapchat.txt
-
 ## - Personal
 # https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/url_general_blocklist.txt
 # https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_domains_cg.txt
@@ -148,7 +139,6 @@ https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 
 #--- Porn ---
 https://raw.githubusercontent.com/mhhakim/pihole-blocklist/master/porn.txt
-# https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list
-# https://raw.githubusercontent.com/chadmayfield/pihole-blocklists/master/lists/pi_blocklist_porn_top1m.list
+## https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list
+## https://raw.githubusercontent.com/chadmayfield/pihole-blocklists/master/lists/pi_blocklist_porn_top1m.list
 https://blocklistproject.github.io/Lists/alt-version/porn-nl.txt
-
