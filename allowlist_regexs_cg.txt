@@ -5,3 +5,5 @@
 # EXAMPLE (WILDCARD)
 #    (\.|^)netflix\.com$
 #--- Generic ---
+(\.|^)pinterest\.com$
+(\.|^)pinimg\.com$
