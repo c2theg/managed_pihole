@@ -20,7 +20,7 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.8
+Version:  0.5.9
 Last Updated:  12/18/2020
 
 location: 
@@ -102,12 +102,13 @@ then
     chown pihole:www-data *.sh
     chown pihole:www-data *.py
     #----------------------
+	cp update_lists.sh /root/update_lists.sh
 	cp upsert_lists.py /root/upsert_lists.py
 	wait
 	#----------------------------------------------------------------
 	echo "Setting up exclude list domains... \r\n "
 	#---- Update exclude Top Domain, list. to Ignore popular sites, in a effort to expose sites that shouldn't be loaded
-    mv pihole_exclude_list.txt /root/pihole_exclude_list.txt
+        mv pihole_exclude_list.txt /root/pihole_exclude_list.txt
 	API_EXCLUDE_DOMAINS_list=$(paste -s -d ',' /root/pihole_exclude_list.txt)
 	sed -i '/API_EXCLUDE_DOMAINS=/c\'API_EXCLUDE_DOMAINS="$API_EXCLUDE_DOMAINS_list" /etc/pihole/setupVars.conf
 	#----------------------------------------------------------------
