@@ -1,0 +1,34 @@
+# By: Christopher Gray
+#  Updated: 12/18/2020
+#
+# --- UNBREAK Regex list: For SOCIAL MEDIA ---
+#  Purpose: to unblock domains in this catagory if they might of been block by another 3rd party list
+#        Since we cant control every 3rd party feedlist, this will override all lists with the domains entered here
+#  
+#
+#    --- THIS WILL UNBLOCK ANY WILDCARD YOU ADD --- 
+#
+# --- ONLY ASSIGN TO CLIENTS YOU DONT WNAT TO FILTER! ---
+#
+#
+#===========================================================
+
+#--- Facebook ---
+(\.|^)facebook\.com$
+(\.|^)fb\.com$
+(\.|^)fbcdn\.net$
+
+(\.|^)instagram\.com$
+(\.|^)cdninstagram\.com$
+
+(\.|^)whatsapp\.com$
+(\.|^)whatsapp\.net$
+
+#--- Twitter ---
+(\.|^)twitter\.com$
+(\.|^)twimg\.com$
+(\.|^)t\.co$
+
+#--- reddit ---
+(\.|^)reddit\.com$
+
