@@ -1,6 +1,6 @@
 # Social blocklist - by: Chris Gray 
 # Date:  12/18/2020
-# Version: 0.0.13
+# Version: 0.0.14
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 # Sources:
@@ -65,7 +65,6 @@ newsroom.fb.com
 investor.fb.com
 live.fb.com
 edge-mqtt.facebook.com
-fbcdn.net
 scontent.xx.fbcdn.net
 web.facebook.com
 
