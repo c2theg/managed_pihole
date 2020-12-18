@@ -1,1 +1,7 @@
+# By: Christopher Gray
+#  Updated: 12/18/2020
+#=================
 
+# EXAMPLE (WILDCARD)
+#    (\.|^)netflix\.com$
+#--- Generic ---
