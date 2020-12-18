@@ -165,7 +165,7 @@ with open(Adlist_File, 'r') as fp:
             dbCommit = True
             print ('Adding entry to pending list: ', str(lineContent), ' \r\n')
             #c.execute("INSERT INTO 'adlist' (address, enabled,date_added, date_modified,comment) VALUES (", str(lineContent), ",  '1', " + strftime("%s","now") + ", " + strftime("%s","now") + ", '+cgray importer'");  # add entry to db
-            AddEntry = (str(lineContent), '0','2', UnixEpoch, UnixEpoch, '+cgray importer')
+            AddEntry = (str(lineContent), '0','2', UnixEpoch, UnixEpoch, 'cg importer')
             RegexEntries.append(AddEntry)
 
             
