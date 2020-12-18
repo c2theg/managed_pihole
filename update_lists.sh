@@ -94,14 +94,14 @@ then
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/upsert_lists.py
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/allow_regex_social_cg.txt
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/allowlist_regexs_cg.txt
-	
 
-    #--- set permissions ---
-    chmod u+x *.sh
-    chmod u+x *.py
-    chown pihole:www-data *.sh
-    chown pihole:www-data *.py
-    #----------------------
+	#--- set permissions ---
+	chmod u+x *.sh
+	chmod u+x *.py
+	chown pihole:www-data *.sh
+	chown pihole:www-data *.py
+	#----------------------
+
 	cp update_lists.sh /root/update_lists.sh
 	cp upsert_lists.py /root/upsert_lists.py
 	wait
