@@ -1,6 +1,6 @@
 # Social blocklist - by: Chris Gray 
-# Date:  11/21/2020
-# Version: 0.0.11
+# Date:  12/18/2020
+# Version: 0.0.12
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 # Sources:
