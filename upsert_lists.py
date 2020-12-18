@@ -3,7 +3,7 @@
 #-------------------------------------------------------------
 #  * Copyright (c) 2021 Christopher Gray
 #  * All rights reserved.  Proprietary and Confidential.
-Version = "0.0.41"
+Version = "0.0.42"
 Updated = "12/18/2020"
 # ChangeLog:
 #
@@ -58,6 +58,7 @@ except Error as e:
 
 
 dbCommit = False
+RegexEntries = []
 RowsToAdd = []
 count = 0
 now = datetime.now(timezone.utc) - timedelta(days=0) # UTC TIME!!!!!
@@ -90,7 +91,6 @@ with open(Adlist_File, 'r') as fp:
 
 #------------ blocklist_regexs --------------------
 Adlist_File = "blocklist_regexs_cg.txt"
-RegexEntries = []
 with open(Adlist_File, 'r') as fp: 
     for line in fp:
         count += 1
@@ -117,7 +117,6 @@ with open(Adlist_File, 'r') as fp:
 
 #------------ ALLOW_regexs --------------------
 Adlist_File = "allowlist_regexs_cg.txt"
-RegexEntries = []
 with open(Adlist_File, 'r') as fp: 
     for line in fp:
         count += 1
@@ -144,7 +143,6 @@ with open(Adlist_File, 'r') as fp:
 
 #------------ ALLOW_regexs --------------------
 Adlist_File = "allow_regex_social_cg.txt"
-RegexEntries = []
 with open(Adlist_File, 'r') as fp: 
     for line in fp:
         count += 1
