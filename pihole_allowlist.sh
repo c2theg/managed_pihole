@@ -18,8 +18,8 @@ echo "
 
 This really is meant to be run under Rasbian / PiHole / Ubuntu 16.04 LTS +
 
-Version:  0.0.35
-Last Updated:  11/21/2020
+Version:  0.0.36
+Last Updated:  12/18/2020
 
 "
 #--------------------------
@@ -56,6 +56,8 @@ pihole -w settings-win.data.microsoft.com
 pihole -w v10.vortex-win.data.microsoft.com mobile.pipe.aria.microsoft.com
 pihole -w msftncsi.com www.msftncsi.com ipv6.msftncsi.com
 
+#-- pinterest
+pihole -w pinterest.com policy.pinterest.com trk.pinterest.com trk2.pinterest.com api.pinterest.com v.pinimg.com prod.pinterest.global.map.fastly.net s-pinimg-com.gslb.pinterest.com i.pinimg.com.gslb.pinterest.com 
 #-- Xbox
 # pihole -w xbox.ipv6.microsoft.com device.auth.xboxlive.com www.msftncsi.com title.mgt.xboxlive.com xsts.auth.xboxlive.com title.auth.xboxlive.com ctldl.windowsupdate.com attestation.xboxlive.com xboxexperiencesprod.experimentation.xboxlive.com xflight.xboxlive.com cert.mgt.xboxlive.com xkms.xboxlive.com def-vef.xboxlive.com notify.xboxlive.com help.ui.xboxlive.com licensing.xboxlive.com eds.xboxlive.com www.xboxlive.com v10.vortex-win.data.microsoft.com settings-win.data.microsoft.com
 
