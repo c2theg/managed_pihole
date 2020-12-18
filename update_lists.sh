@@ -20,8 +20,8 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.7
-Last Updated:  12/16/2020
+Version:  0.5.8
+Last Updated:  12/18/2020
 
 location: 
 
@@ -72,6 +72,9 @@ then
 	rm update_time.*
 	rm resolv_base.conf.*
 	rm cgray_regex_blocks.txt.*
+	rm allow_regex_social_cg.txt
+	rm allowlist_regexs_cg.txt
+	
 
 	if [ -s "/root/update_lists.sh" ]
 	then
@@ -89,7 +92,9 @@ then
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/initial_setup.py
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/backup_dbs.py
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/upsert_lists.py
-
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/allow_regex_social_cg.txt
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/allowlist_regexs_cg.txt
+	
 
     #--- set permissions ---
     chmod u+x *.sh
