@@ -12,8 +12,8 @@
 #
 #
 #
-# Version:  0.4.7
-# Last Updated:  12/18/2020
+# Version:  0.4.8
+# Last Updated:  12/19/2020
 # Changed:
 #   New for pihole 5 - importer script
 #
@@ -73,7 +73,6 @@ https://someonewhocares.org/hosts/zero/hosts
 https://raw.githubusercontent.com/vokins/yhosts/master/hosts
 https://winhelp2002.mvps.org/hosts.txt
 https://raw.githubusercontent.com/RooneyMcNibNug/pihole-stuff/master/SNAFU.txt
-https://hostsfile.mine.nu/hosts0.txt
 https://adblock.mahakala.is
 https://adaway.org/hosts.txt
 https://v.firebog.net/hosts/AdguardDNS.txt
