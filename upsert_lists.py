@@ -3,8 +3,8 @@
 #-------------------------------------------------------------
 #  * Copyright (c) 2021 Christopher Gray
 #  * All rights reserved.  Proprietary and Confidential.
-Version = "0.0.42"
-Updated = "12/18/2020"
+Version = "0.0.43"
+Updated = "12/26/2020"
 # ChangeLog:
 #
 # Sources:
@@ -208,5 +208,9 @@ os.system("pihole restartdns reload-lists")
 
 print ("Updating gravity domains... \r\n")
 os.system("pihole -g")
+
+
+print ("Starting pihole FTL (Faster then light) DNS Sever... \r\n")
+os.system("sudo service pihole-FTL start")
 
 print ("DONE! ")
