@@ -30,12 +30,13 @@ FilePath_pihole = "/etc/pihole/"
 File_PiHole = "gravity.db"
 Adlist_File = "cgray_blocklists.txt"
 
+os.system("pihole -v -c")
+os.system("pihole status")
+
+
 #----  Cleanup ----
 os.system("sudo rm /var/log/pihole-FTL.log.*")
 os.system("sudo rm /var/log/pihole.log.*")
-
-os.system("pihole -v -c")
-os.system("pihole status")
 
 #print ("Cleaning up pihole Db... \r\n \r\n") # Deletes all old logs. do this once a week, not daily!
 #os.system("pihole flush")
