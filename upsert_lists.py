@@ -37,8 +37,8 @@ os.system("sudo rm /var/log/pihole.log.*")
 os.system("pihole -v -c")
 os.system("pihole status")
 
-print ("Cleaning up pihole Db... \r\n \r\n")
-os.system("pihole flush")
+#print ("Cleaning up pihole Db... \r\n \r\n") # Deletes all old logs. do this once a week, not daily!
+#os.system("pihole flush")
 
 print ("stopping pihole-FTL... \r\n \r\n")
 os.system("pihole -up")
