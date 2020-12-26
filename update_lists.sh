@@ -20,8 +20,8 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.9
-Last Updated:  12/18/2020
+Version:  0.5.10
+Last Updated:  12/26/2020
 
 location: 
 
@@ -74,7 +74,7 @@ then
 	rm cgray_regex_blocks.txt.*
 	rm allow_regex_social_cg.txt
 	rm allowlist_regexs_cg.txt
-	
+	rm cleanup.sh.*
 
 	if [ -s "/root/update_lists.sh" ]
 	then
@@ -94,7 +94,8 @@ then
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/upsert_lists.py
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/allow_regex_social_cg.txt
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/allowlist_regexs_cg.txt
-
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cleanup.sh
+	
 	#--- set permissions ---
 	chmod u+x *.sh
 	chmod u+x *.py
@@ -110,7 +111,7 @@ then
 	#---- Update exclude Top Domain, list. to Ignore popular sites, in a effort to expose sites that shouldn't be loaded
         mv pihole_exclude_list.txt /root/pihole_exclude_list.txt
 	API_EXCLUDE_DOMAINS_list=$(paste -s -d ',' /root/pihole_exclude_list.txt)
-	sed -i '/API_EXCLUDE_DOMAINS=/c\'API_EXCLUDE_DOMAINS="$API_EXCLUDE_DOMAINS_list" /etc/pihole/setupVars.conf
+	sed -i '/API_EXCLUDE_DOMAINS=/c\'API_EXCLUDE_DOMAINS="$API_EXCLUDE_DOMAINS_list" /etc/pihole/setupVars.conf'	
 	#----------------------------------------------------------------
 	echo "Updating pihole \r\n \r\n"
 	sudo pihole -up
