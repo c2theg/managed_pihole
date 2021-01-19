@@ -18,8 +18,8 @@ echo "
 
 This really is meant to be run under Rasbian / PiHole / Ubuntu 16.04 LTS +
 
-Version:  0.0.36
-Last Updated:  12/18/2020
+Version:  0.0.37
+Last Updated:  1/18/2021
 
 "
 #--------------------------
@@ -82,7 +82,7 @@ pihole -w weeklyad.target.com m.weeklyad.target.com weeklyad.target.com.edgesuit
 pihole -w amazon.com fls-na.amazon.com
 
 #-- Others
-pihole -w gravatar.com bit.ly godaddy.com secureserver.net
+pihole -w gravatar.com bit.ly godaddy.com secureserver.net img1.wsimg.com sdk.split.io
 pihole -w thetvdb.com
 pihole -w themoviedb.com
 pihole -w medium.com
