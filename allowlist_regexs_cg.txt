@@ -1,9 +1,13 @@
 # By: Christopher Gray
-#  Updated: 12/18/2020
-#=================
-
+#  Updated: 1/29/2021
+#=======================
 # EXAMPLE (WILDCARD)
-#    (\.|^)netflix\.com$
+
+#  (\.|^)netflix\.com$
 #--- Generic ---
+
 (\.|^)pinterest\.com$
 (\.|^)pinimg\.com$
+
+(\.|^)w-x\.co$
+(\.|^)weather\.com$
