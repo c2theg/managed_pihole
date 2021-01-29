@@ -12,8 +12,8 @@
 #
 #
 #
-# Version:  0.4.8
-# Last Updated:  12/19/2020
+# Version:  0.4.9
+# Last Updated:  1/29/2021
 # Changed:
 #   New for pihole 5 - importer script
 #
@@ -38,13 +38,6 @@ https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
 ## Disconnect.me Ads
 https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
 
-## Hosts-file.net - NOW OWNED BY MalewareBytes!!! BOO!!!
-# https://hosts-file.net/ad_servers.txt
-# https://hosts-file.net/emd.txt
-# https://hosts-file.net/exp.txt
-# https://hosts-file.net/hjk.txt
-# https://hosts-file.net/pup.txt
-
 # https://hostsfile.tk/ ->  https://github.com/fredprod/host-file.net-backup
 https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/ad_servers.txt
 https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/emd.txt
@@ -66,7 +59,7 @@ https://blocklist.site/app/dl/tracking
 https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts_without_controversies.txt
 https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts
 https://v.firebog.net/hosts/BillStearns.txt
-https://sysctl.org/cameleon/hosts
+#https://sysctl.org/cameleon/hosts
 https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt
 https://hostsfile.org/Downloads/hosts.txt
 https://someonewhocares.org/hosts/zero/hosts
