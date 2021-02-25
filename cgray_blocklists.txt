@@ -18,7 +18,7 @@
 #  Removing Porn blocks. With them, theres a total >4.5Million URLs.
 #     So to reduce that, use:
 #         Cloudflare Family DNS: 1.1.1.3  / 2606:4700:4700::1113
-#         OpenDNS Family Sheild: 208.67.222.123 / 2620:119:53::53
+#         OpenDNS Family Shield: 208.67.222.123 / 2620:119:53::53
 #
 #
 #   New for pihole 5 - importer script
