@@ -12,8 +12,8 @@
 #
 #
 #
-# Version:  0.5.0
-# Last Updated:  2/25/2021
+# Version:  0.5.1
+# Last Updated:  4/26/2021
 # Changed:
 #  Removing Porn blocks. With them, theres a total >4.5Million URLs.
 #     So to reduce that, use:
@@ -98,8 +98,6 @@ https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20vers
 https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt
 https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt
 https://v.firebog.net/hosts/Prigent-Malware.txt
-https://mirror.cedia.org.ec/malwaredomains/immortal_domains.txt
-https://www.malwaredomainlist.com/hostslist/hosts.txt
 https://bitbucket.org/ethanr/dns-blacklists/raw/8575c9f96e5b4a1308f2f12394abd86d0927a4a0/bad_lists/Mandiant_APT1_Report_Appendix_D.txt
 https://phishing.army/download/phishing_army_blocklist_extended.txt
 https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt
@@ -114,8 +112,6 @@ https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
 
 https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/youtubelist.txt
 https://filters.adtidy.org/windows/filters/15.txt
-
-## -- https://blocklistproject.github.io/Lists/
 https://blocklistproject.github.io/Lists/alt-version/malware-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/phishing-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/ransomware-nl.txt
@@ -126,15 +122,12 @@ https://blocklistproject.github.io/Lists/alt-version/drugs-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/gambling-nl.txt
 https://blocklistproject.github.io/Lists/alt-version/piracy-nl.txt
 # https://blocklistproject.github.io/Lists/alt-version/youtube-nl.txt
-
 ## - Personal
 # https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/url_general_blocklist.txt
 # https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_domains_cg.txt
-
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_chat.txt
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_games.txt
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
-
 #--- Porn ---
 #https://raw.githubusercontent.com/mhhakim/pihole-blocklist/master/porn.txt
 ## https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list
