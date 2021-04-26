@@ -1,6 +1,6 @@
 # Social blocklist - by: Chris Gray 
-# Date:  12/18/2020
-# Version: 0.0.14
+# Date:  4/26/2021
+# Version: 0.0.15
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 # Sources:
@@ -76,6 +76,7 @@ api.instagram.com
 images.instagram.com
 i.instagram.com
 l.instagram.com
+graphql.instagram.com
 help.instagram.com
 business.instagram.com
 scontent-msp1-1.cdninstagram.com
