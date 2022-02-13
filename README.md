@@ -21,6 +21,12 @@ Install pi-hole as usual ( <b> curl -sSL https://install.pi-hole.net | bash </b>
 wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/update_pihole_lists.sh && chmod u+x update_pihole_lists.sh && sudo ./update_pihole_lists.sh
 
 
+<h3>Static IP </h3>
+wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/configs/01-netcfg.yaml && mv 01-netcfg.yaml /etc/netplan/00-installer-config.yaml
+cd /etc/netplan/
+
+
+
 <h3>DoH on Pi Hole</h3>
 wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/install_doh_pihole.sh && chmod u+x install_doh_pihole.sh && sudo ./install_doh_pihole.sh
 
