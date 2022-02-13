@@ -12,10 +12,10 @@
 #
 #
 #
-# Version:  0.5.1
-# Last Updated:  4/26/2021
+# Version:  0.5.2
+# Last Updated:  2/12/2022
 # Changed:
-#  Removing Porn blocks. With them, theres a total >4.5Million URLs.
+#  Removing Porn blocks. With them, there are over 4.5 Million URLs.
 #     So to reduce that, use:
 #         Cloudflare Family DNS: 1.1.1.3  / 2606:4700:4700::1113
 #         OpenDNS Family Shield: 208.67.222.123 / 2620:119:53::53
@@ -72,7 +72,6 @@ https://someonewhocares.org/hosts/zero/hosts
 https://raw.githubusercontent.com/vokins/yhosts/master/hosts
 https://winhelp2002.mvps.org/hosts.txt
 https://raw.githubusercontent.com/RooneyMcNibNug/pihole-stuff/master/SNAFU.txt
-https://adblock.mahakala.is
 https://adaway.org/hosts.txt
 https://v.firebog.net/hosts/AdguardDNS.txt
 https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt
