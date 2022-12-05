@@ -36,8 +36,16 @@ wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/install_ope
 
 
 
-Update Gravity 
+<br /><br /><br />
+Update Gravity  <br /> <br />
 
+-- Update 5 mins past every hour --- <br /> <br />
 5 * * * * pihole updateGravity
+
+<br /><br /><br/> 
+Better for Business hours <br /><br />
+(At minute 5 past every hour from 7 through 19 on every day-of-week from Monday through Friday.) <br /><br />
+5 7-19 * * 1-5 pihole updateGravity
+
 
 
