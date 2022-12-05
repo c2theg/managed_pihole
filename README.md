@@ -33,3 +33,11 @@ wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/install_doh_pihol
 
 <h3>OpenDNS account, linux updater </h3>
 wget https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/install_opendns.sh && chmod u+x install_opendns.sh && sudo ./install_opendns.sh
+
+
+
+Update Gravity 
+
+5 * * * * pihole updateGravity
+
+
