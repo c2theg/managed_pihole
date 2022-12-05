@@ -49,3 +49,8 @@ Better for Business hours <br /><br />
 
 
 
+<br /><br /><br /><br />
+
+Update PiHole everything <br /><br />
+
+30 4 * * * pihole -up
