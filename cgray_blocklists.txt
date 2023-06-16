@@ -110,7 +110,6 @@ https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt
 https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts
 https://urlhaus.abuse.ch/downloads/hostfile/
 https://raw.githubusercontent.com/HorusTeknoloji/TR-PhishingList/master/url-lists.txt
-https://v.firebog.net/hosts/Airelle-hrsk.txt
 https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser
 https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
 
