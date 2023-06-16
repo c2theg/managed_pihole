@@ -52,19 +52,26 @@ https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/exp.txt
 https://www.spamhaus.org/drop/drop.txt
 https://zerodot1.gitlab.io/CoinBlockerLists/hosts
 
-## - blocklist.site
-https://raw.githubusercontent.com/klekxos/host-file.net-backup/master/ad_servers.txt
-#https://justdomains.github.io/blocklists/lists/adguarddns-justdomains.txt
-https://blocklist.site/app/dl/phishing
-## https://blocklist.site/app/dl/fakenews
-https://blocklist.site/app/dl/malware
-https://blocklist.site/app/dl/piracy
-https://blocklist.site/app/dl/ransomware
-https://blocklist.site/app/dl/scam
-https://blocklist.site/app/dl/tracking
+# --- blocklist.site ---
+https://blocklistproject.github.io/Lists/basic.txt
+https://blocklistproject.github.io/Lists/abuse.txt
+https://blocklistproject.github.io/Lists/ads.txt
+https://blocklistproject.github.io/Lists/phishing.txt
+https://blocklistproject.github.io/Lists/malware.txt
+https://blocklistproject.github.io/Lists/tracking.txt
+https://blocklistproject.github.io/Lists/scam.txt
+https://blocklistproject.github.io/Lists/fraud.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/piracy.txt
+https://blocklistproject.github.io/Lists/redirect.txt
+https://blocklistproject.github.io/Lists/smart-tv.txt
+
+https://blocklistproject.github.io/Lists/crypto.txt
+#---- End of blocklist.site -------
+
+
 https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts_without_controversies.txt
 https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts
-https://v.firebog.net/hosts/BillStearns.txt
+
 #https://sysctl.org/cameleon/hosts
 https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt
 https://hostsfile.org/Downloads/hosts.txt
@@ -92,7 +99,6 @@ https://hostfiles.frogeye.fr/multiparty-trackers-hosts.txt
 https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/android-tracking.txt
 https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/SmartTV.txt
 https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/AmazonFireTV.txt
-https://v.firebog.net/hosts/Airelle-trc.txt
 https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareHosts.txt
 https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt
 https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt
@@ -100,7 +106,6 @@ https://v.firebog.net/hosts/Prigent-Malware.txt
 https://bitbucket.org/ethanr/dns-blacklists/raw/8575c9f96e5b4a1308f2f12394abd86d0927a4a0/bad_lists/Mandiant_APT1_Report_Appendix_D.txt
 https://phishing.army/download/phishing_army_blocklist_extended.txt
 https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt
-https://v.firebog.net/hosts/Shalla-mal.txt
 https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt
 https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts
 https://urlhaus.abuse.ch/downloads/hostfile/
@@ -111,16 +116,7 @@ https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
 
 https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/youtubelist.txt
 https://filters.adtidy.org/windows/filters/15.txt
-https://blocklistproject.github.io/Lists/alt-version/malware-nl.txt
-https://blocklistproject.github.io/Lists/alt-version/phishing-nl.txt
-https://blocklistproject.github.io/Lists/alt-version/ransomware-nl.txt
-https://blocklistproject.github.io/Lists/alt-version/redirect-nl.txt
-https://blocklistproject.github.io/Lists/alt-version/scam-nl.txt
-https://blocklistproject.github.io/Lists/alt-version/ads-nl.txt
-https://blocklistproject.github.io/Lists/alt-version/drugs-nl.txt
-https://blocklistproject.github.io/Lists/alt-version/gambling-nl.txt
-https://blocklistproject.github.io/Lists/alt-version/piracy-nl.txt
-# https://blocklistproject.github.io/Lists/alt-version/youtube-nl.txt
+
 ## - Personal
 # https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/url_general_blocklist.txt
 # https://raw.githubusercontent.com/c2theg/srvBuilds/master/raspi/blocklist_domains_cg.txt
