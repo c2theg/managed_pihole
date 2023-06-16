@@ -12,8 +12,8 @@
 #
 #
 #
-# Version:  0.5.2
-# Last Updated:  2/12/2022
+# Version:  0.5.3
+# Last Updated:  6/15/2023
 # Changed:
 #  Removing Porn blocks. With them, there are over 4.5 Million URLs.
 #     So to reduce that, use:
