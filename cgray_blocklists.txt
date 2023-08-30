@@ -12,8 +12,8 @@
 #
 #
 #
-# Version:  0.5.3
-# Last Updated:  6/15/2023
+# Version:  0.5.4
+# Last Updated:  8/30/2023
 # Changed:
 #  Removing Porn blocks. With them, there are over 4.5 Million URLs.
 #     So to reduce that, use:
@@ -45,7 +45,7 @@ https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt
 https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
 
 # https://hostsfile.tk/ ->  https://github.com/fredprod/host-file.net-backup
-https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/ad_servers.txt
+#https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/ad_servers.txt
 https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/emd.txt
 https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/exp.txt
 
@@ -53,19 +53,18 @@ https://www.spamhaus.org/drop/drop.txt
 https://zerodot1.gitlab.io/CoinBlockerLists/hosts
 
 # --- blocklist.site ---
-https://blocklistproject.github.io/Lists/basic.txt
-https://blocklistproject.github.io/Lists/abuse.txt
-https://blocklistproject.github.io/Lists/ads.txt
-https://blocklistproject.github.io/Lists/phishing.txt
-https://blocklistproject.github.io/Lists/malware.txt
-https://blocklistproject.github.io/Lists/tracking.txt
-https://blocklistproject.github.io/Lists/scam.txt
-https://blocklistproject.github.io/Lists/fraud.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/basic.txt
+# https://raw.githubusercontent.com/blocklistproject/Lists/master/abuse.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/ads.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/phishing.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/malware.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/tracking.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/scam.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/fraud.txt
 https://raw.githubusercontent.com/blocklistproject/Lists/master/piracy.txt
-https://blocklistproject.github.io/Lists/redirect.txt
-https://blocklistproject.github.io/Lists/smart-tv.txt
-
-https://blocklistproject.github.io/Lists/crypto.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/redirect.txt
+# https://raw.githubusercontent.com/blocklistproject/Lists/master/smart-tv.txt
+https://raw.githubusercontent.com/blocklistproject/Lists/master/crypto.txt
 #---- End of blocklist.site -------
 
 
