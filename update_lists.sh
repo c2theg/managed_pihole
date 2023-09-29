@@ -20,8 +20,8 @@ Current working dir: $SCRIPTPATH \r\n \r\n
                             |_|                                             |___|
 
 
-Version:  0.5.10
-Last Updated:  12/26/2020
+Version:  0.5.11
+Last Updated:  9/29/2023
 
 location: 
 
@@ -75,6 +75,7 @@ then
 	rm allow_regex_social_cg.txt
 	rm allowlist_regexs_cg.txt
 	rm cleanup.sh.*
+ 	rm export_custom_lists.*
 
 	if [ -s "/root/update_lists.sh" ]
 	then
@@ -95,7 +96,8 @@ then
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/allow_regex_social_cg.txt
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/allowlist_regexs_cg.txt
 	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/cleanup.sh
-	
+	sudo wget https://raw.githubusercontent.com/c2theg/managed_pihole/main/export_custom_lists.sh
+ 
 	#--- set permissions ---
 	chmod u+x *.sh
 	chmod u+x *.py
