@@ -1,4 +1,7 @@
 # From: https://d3ward.github.io/toolz/adblock.html
+ads.js
+partner.ads.js
+pagead.js
 adtago.s3.amazonaws.com
 app.bugsnag.com
 browser.sentry-cdn.com
