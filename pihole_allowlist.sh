@@ -18,8 +18,8 @@ echo "
 
 This really is meant to be run under Rasbian / PiHole / Ubuntu 16.04 LTS +
 
-Version:  0.0.37
-Last Updated:  1/18/2021
+Version:  0.0.38
+Last Updated:  11/12/2023
 
 "
 #--------------------------
@@ -62,10 +62,10 @@ pihole -w pinterest.com policy.pinterest.com trk.pinterest.com trk2.pinterest.co
 # pihole -w xbox.ipv6.microsoft.com device.auth.xboxlive.com www.msftncsi.com title.mgt.xboxlive.com xsts.auth.xboxlive.com title.auth.xboxlive.com ctldl.windowsupdate.com attestation.xboxlive.com xboxexperiencesprod.experimentation.xboxlive.com xflight.xboxlive.com cert.mgt.xboxlive.com xkms.xboxlive.com def-vef.xboxlive.com notify.xboxlive.com help.ui.xboxlive.com licensing.xboxlive.com eds.xboxlive.com www.xboxlive.com v10.vortex-win.data.microsoft.com settings-win.data.microsoft.com
 
 #--- Facebook
-#pihole -w www.facebook.com facebook.com static.xx.fbcdn.net fbcdn.net creative.ak.fbcdn.net scontent-lga3-1.xx.fbcdn.net edge-chat.facebook.com external-lhr0-1.xx.fbcdn.net external-lhr1-1.xx.fbcdn.net external-lhr10-1.xx.fbcdn.net external-lhr2-1.xx.fbcdn.net external-lhr3-1.xx.fbcdn.net external-lhr4-1.xx.fbcdn.net external-lhr5-1.xx.fbcdn.net external-lhr6-1.xx.fbcdn.net external-lhr7-1.xx.fbcdn.net external-lhr8-1.xx.fbcdn.net external-lhr9-1.xx.fbcdn.net fbcdn-creative-a.akamaihd.net scontent-lhr3-1.xx.fbcdn.net scontent.xx.fbcdn.net scontent.fgdl5-1.fna.fbcdn.net graph.facebook.com connect.facebook.com cdn.fbsbx.com
+pihole -w www.facebook.com facebook.com static.xx.fbcdn.net fbcdn.net creative.ak.fbcdn.net scontent-lga3-1.xx.fbcdn.net edge-chat.facebook.com external-lhr0-1.xx.fbcdn.net external-lhr1-1.xx.fbcdn.net external-lhr10-1.xx.fbcdn.net external-lhr2-1.xx.fbcdn.net external-lhr3-1.xx.fbcdn.net external-lhr4-1.xx.fbcdn.net external-lhr5-1.xx.fbcdn.net external-lhr6-1.xx.fbcdn.net external-lhr7-1.xx.fbcdn.net external-lhr8-1.xx.fbcdn.net external-lhr9-1.xx.fbcdn.net fbcdn-creative-a.akamaihd.net scontent-lhr3-1.xx.fbcdn.net scontent.xx.fbcdn.net scontent.fgdl5-1.fna.fbcdn.net graph.facebook.com connect.facebook.com cdn.fbsbx.com
 
 #--- Twitter
-#pihole -w twitter.com www.twitter.com mobile.twitter.com analytics.twitter.com t.co
+pihole -w twitter.com www.twitter.com mobile.twitter.com analytics.twitter.com t.co
 
 #-- Plex
 pihole -w plex.tv tvdb2.plex.tv pubsub.plex.bz proxy.plex.bz proxy02.pop.ord.plex.bz cpms.spop10.ams.plex.bz meta-db-worker02.pop.ric.plex.bz meta.plex.bz tvthemes.plexapp.com.cdn.cloudflare.net tvthemes.plexapp.com 106c06cd218b007d-b1e8a1331f68446599e96a4b46a050f5.ams.plex.services meta.plex.tv cpms35.spop10.ams.plex.bz proxy.plex.tv metrics.plex.tv pubsub.plex.tv status.plex.tv www.plex.tv node.plexapp.com nine.plugins.plexapp.com staging.plex.tv app.plex.tv o1.email.plex.tv  o2.sg0.plex.tv dashboard.plex.tv
@@ -79,7 +79,9 @@ pihole -w captive.apple.com gsp1.apple.com www.apple.com www.appleiphonecell.com
 
 #--- Ads that are good
 pihole -w weeklyad.target.com m.weeklyad.target.com weeklyad.target.com.edgesuite.net api.target.com redsky.target.com profile.target.com 
-pihole -w amazon.com fls-na.amazon.com
+
+#--- Amazon
+pihole -w amazon.com s3.amazonaws.com fls-na.amazon.com unagi-na.amazon.com mas-ssr-ad.amazon.com mas-ext.amazon.com device-metrics-us.amazon.com msh.amazon.com
 
 #-- Others
 pihole -w gravatar.com bit.ly godaddy.com secureserver.net img1.wsimg.com sdk.split.io
@@ -87,7 +89,6 @@ pihole -w thetvdb.com
 pihole -w themoviedb.com
 pihole -w medium.com
 pihole -w spclient.wg.spotify.com apresolve.spotify.com
-pihole -w s3.amazonaws.com
 pihole -w ocsp.godaddy.com ocsp.godaddy.com ocsp.sca1b.amazontrust.com ocsp.pki.goog ocsp.digicert.com.lan ocsp.usertrust.com crl4.digicert.com  cs9.wac.phicdn.net 
 pihole -w highcharts.com
 pihole -w bflix.to
