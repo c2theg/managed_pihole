@@ -1,0 +1,20 @@
+# allow or block these if you feel your network should have them
+# https://dnsprivacy.org/test_servers/
+
+doh.opendns.com
+doh.familyshield.opendns.com
+doh.umbrella.com
+
+cloudflare-dns.com
+dns.google
+
+dns.quad9.net
+  
+# https://cleanbrowsing.org/help/docs/dnsovertls/
+security-filter-dns.cleanbrowsing.org
+family-filter-dns.cleanbrowsing.org
+adult-filter-dns.cleanbrowsing.org
+
+# https://adguard-dns.io/en/blog/adguard-dns-announcement.html
+dns.adguard.com
+dns-family.adguard.com
