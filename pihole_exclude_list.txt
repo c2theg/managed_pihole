@@ -175,3 +175,7 @@ fw-update2.smartthings.com
 go-updater.brave.com
 cod-assets.cdn.callofduty.com
 scs.samsungqbe.com
+ocsp.pki.goog
+updates2.signal.org
+safebrowsing.brave.com
+account-public-service-prod.ol.epicgames.com
