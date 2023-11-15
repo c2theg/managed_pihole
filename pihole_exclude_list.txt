@@ -72,6 +72,8 @@ github.com
 unifi
 unifi.ui.com
 net-fe-static-assets.network-controller.svc.ui.com
+loudaccess.svc.ui.com
+*.ui.com
 hub.docker.com
 *.vmware.com
 *.ubuntu.com
@@ -164,3 +166,4 @@ westus-0.in.applicationinsights.azure.com
 vscode-sync.trafficmanager.net
 one.one.one.one
 firetvcaptiveportal.com
+lightstep.kaizen.nvidia.com
