@@ -70,6 +70,9 @@ github.com
 *.secureserver.net
 *.datatables.net
 unifi
+unifi.ui.com
+net-fe-static-assets.network-controller.svc.ui.com
+hub.docker.com
 *.vmware.com
 *.ubuntu.com
 *.launchpad.net
