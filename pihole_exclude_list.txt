@@ -167,3 +167,6 @@ vscode-sync.trafficmanager.net
 one.one.one.one
 firetvcaptiveportal.com
 lightstep.kaizen.nvidia.com
+api.amazonalexa.com
+ps5.np.playstation.net
+*.playlstation.net
