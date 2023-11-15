@@ -1,6 +1,7 @@
 localhost
 local
 wlan0
+wpad.localdomain
 *.google.com
 google.com
 *.googleusercontent.com
@@ -179,3 +180,4 @@ ocsp.pki.goog
 updates2.signal.org
 safebrowsing.brave.com
 account-public-service-prod.ol.epicgames.com
+pico.eset.com
