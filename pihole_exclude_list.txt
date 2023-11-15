@@ -170,3 +170,8 @@ lightstep.kaizen.nvidia.com
 api.amazonalexa.com
 ps5.np.playstation.net
 *.playlstation.net
+desktop.docker.com
+fw-update2.smartthings.com
+go-updater.brave.com
+cod-assets.cdn.callofduty.com
+scs.samsungqbe.com
