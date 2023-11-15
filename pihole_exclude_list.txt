@@ -152,3 +152,11 @@ zoom.us
 *.verizonmedia.com
 *.windows.net
 *.ytimg.com
+connectivity.smartthings.com
+_dns.resolver.arpa
+sastv.samsungqbe.com
+azure.com
+*.azure.com
+westus-0.in.applicationinsights.azure.com
+one.one.one.one
+firetvcaptiveportal.com
