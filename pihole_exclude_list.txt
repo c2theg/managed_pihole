@@ -158,5 +158,6 @@ sastv.samsungqbe.com
 azure.com
 *.azure.com
 westus-0.in.applicationinsights.azure.com
+vscode-sync.trafficmanager.net
 one.one.one.one
 firetvcaptiveportal.com
