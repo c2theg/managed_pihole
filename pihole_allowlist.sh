@@ -18,8 +18,8 @@ echo "
 
 This really is meant to be run under Rasbian / PiHole / Ubuntu 16.04 LTS +
 
-Version:  0.0.38
-Last Updated:  11/12/2023
+Version:  0.0.39
+Last Updated:  11/30/2023
 
 "
 #--------------------------
@@ -89,7 +89,7 @@ pihole -w thetvdb.com
 pihole -w themoviedb.com
 pihole -w medium.com
 pihole -w spclient.wg.spotify.com apresolve.spotify.com
-pihole -w ocsp.godaddy.com ocsp.godaddy.com ocsp.sca1b.amazontrust.com ocsp.pki.goog ocsp.digicert.com.lan ocsp.usertrust.com crl4.digicert.com  cs9.wac.phicdn.net 
+pihole -w ocsp2-lb.apple.com.akadns.net ocsp.godaddy.com ocsp.godaddy.com ocsp.sca1b.amazontrust.com ocsp.pki.goog ocsp.digicert.com.lan ocsp.usertrust.com crl4.digicert.com  cs9.wac.phicdn.net 
 pihole -w highcharts.com
 pihole -w bflix.to
 
