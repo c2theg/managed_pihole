@@ -18,3 +18,7 @@ adult-filter-dns.cleanbrowsing.org
 # https://adguard-dns.io/en/blog/adguard-dns-announcement.html
 dns.adguard.com
 dns-family.adguard.com
+
+#--- apple
+doh.dns.apple.com.v.aaplimg.com
+doh.dns.apple.com
