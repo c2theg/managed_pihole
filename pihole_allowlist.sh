@@ -89,7 +89,7 @@ pihole -w thetvdb.com
 pihole -w themoviedb.com
 pihole -w medium.com
 pihole -w spclient.wg.spotify.com apresolve.spotify.com
-pihole -w ocsp2-lb.apple.com.akadns.net ocsp.godaddy.com ocsp.godaddy.com ocsp.sca1b.amazontrust.com ocsp.pki.goog ocsp.digicert.com.lan ocsp.usertrust.com crl4.digicert.com  cs9.wac.phicdn.net 
+pihole -w ocsp2.apple.com ocsp2.g.aaplimg.com ocsp2-lb.apple.com.akadns.net ocsp.godaddy.com ocsp.godaddy.com ocsp.sca1b.amazontrust.com ocsp.pki.goog ocsp.digicert.com.lan ocsp.usertrust.com crl4.digicert.com  cs9.wac.phicdn.net 
 pihole -w highcharts.com
 pihole -w bflix.to
 
