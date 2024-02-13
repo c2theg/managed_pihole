@@ -18,8 +18,8 @@ echo "
 
 This really is meant to be run under Rasbian / PiHole / Ubuntu 16.04 LTS +
 
-Version:  0.0.39
-Last Updated:  11/30/2023
+Version:  0.0.40
+Last Updated:  2/13/2024
 
 "
 #--------------------------
@@ -92,6 +92,8 @@ pihole -w spclient.wg.spotify.com apresolve.spotify.com
 pihole -w ocsp2.apple.com ocsp2.g.aaplimg.com ocsp2-lb.apple.com.akadns.net ocsp.godaddy.com ocsp.godaddy.com ocsp.sca1b.amazontrust.com ocsp.pki.goog ocsp.digicert.com.lan ocsp.usertrust.com crl4.digicert.com  cs9.wac.phicdn.net 
 pihole -w highcharts.com
 pihole -w bflix.to
+#-- podcasts (Security Now - Twit) 
+pihole -w traffic.libsyn.com
 
 #-- Charters.com
 pihole -w yottaa.net
