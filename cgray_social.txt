@@ -1,6 +1,6 @@
 # Social blocklist - by: Chris Gray 
-# Date:  4/26/2021
-# Version: 0.0.15
+# Date:  4/26/2024
+# Version: 0.0.18
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
 # Sources:
@@ -117,3 +117,4 @@ reddit.com
 www.reddit.com
 oauth.reddit.com
 gql.reddit.com
+e.reddit.com
