@@ -118,3 +118,5 @@ www.reddit.com
 oauth.reddit.com
 gql.reddit.com
 e.reddit.com
+w3-reporting.reddit.com
+alb.reddit.com
