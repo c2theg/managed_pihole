@@ -6,8 +6,14 @@
 # Sources:
 #
 # ========================================================================================
-smlschool.org
-smlparish.org
+
+#------ CDNs ------
 cdn.ecatholic.com
 files.ecatholic.com
 img.ecatholic.com
+
+
+#----- Specific ------
+smlschool.org
+smlparish.org
+
