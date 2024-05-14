@@ -8,5 +8,6 @@
 # ========================================================================================
 smlschool.org
 smlparish.org
-
-
+cdn.ecatholic.com
+files.ecatholic.com
+img.ecatholic.com
