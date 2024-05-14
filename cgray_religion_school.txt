@@ -1,0 +1,12 @@
+# Social blocklist - by: Chris Gray 
+# Date:  5/14/2024
+# Version: 0.0.1
+# Fetch the latest version of this file: 
+# https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_religion_school.txt
+# Sources:
+#
+# ========================================================================================
+smlschool.org
+smlparish.org
+
+
