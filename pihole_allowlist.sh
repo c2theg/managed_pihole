@@ -18,8 +18,8 @@ echo "
 
 This really is meant to be run under Rasbian / PiHole / Ubuntu 16.04 LTS +
 
-Version:  0.0.40
-Last Updated:  2/13/2024
+Version:  0.0.41
+Last Updated:  6/2/2024
 
 "
 #--------------------------
@@ -107,4 +107,4 @@ pihole -w connectivitycheck.android.com android.clients.google.com clients3.goog
 pihole -w goguardian.com ip.goguardian.com quiddity.goguardian.com panther.goguardian.com x3-policy-maker.goguardian.com waluigi.goguardian.com snat.goguardian.com play-button.goguardian.com 
 
 #-- SmartTV's ---
-pihole -w cdn.samsungcloudsolution.com  samsungcloudsolution.com  lcprd1.samsungcloudsolution.net  osb.samsungqbe.com  osb-apps-v2.samsungqbe.com  lcprd1.samsungcloudsolution.net  log-config.samsungacr.com  
+pihole -w cdn.samsungcloudsolution.com  samsungcloudsolution.com  lcprd1.samsungcloudsolution.net  osb.samsungqbe.com  osb-apps-v2.samsungqbe.com  lcprd1.samsungcloudsolution.net  log-config.samsungacr.com
