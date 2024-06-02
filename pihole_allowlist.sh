@@ -107,4 +107,4 @@ pihole -w connectivitycheck.android.com android.clients.google.com clients3.goog
 pihole -w goguardian.com ip.goguardian.com quiddity.goguardian.com panther.goguardian.com x3-policy-maker.goguardian.com waluigi.goguardian.com snat.goguardian.com play-button.goguardian.com 
 
 #-- SmartTV's ---
-pihole -w cdn.samsungcloudsolution.com  samsungcloudsolution.com  lcprd1.samsungcloudsolution.net  osb.samsungqbe.com
+pihole -w cdn.samsungcloudsolution.com  samsungcloudsolution.com  lcprd1.samsungcloudsolution.net  osb.samsungqbe.com  osb-apps-v2.samsungqbe.com  lcprd1.samsungcloudsolution.net  log-config.samsungacr.com  
