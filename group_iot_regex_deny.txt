@@ -1,0 +1,18 @@
+# group_iot_regex_deny.txt - EXTRA regex deny for the "IoT" group only
+# Version: 0.1.0 | Updated: 11/5/2026 | Claude Code (Anthropic) - Claude Opus 5.5 (claude-opus-5-5)
+#
+# Applied by upsert_vlan_groups.py to clients in the IoT VLAN, on top of
+# blocklist_regexs_cg.txt. Pi-hole v6 regex syntax (POSIX ERE).
+# Add your own in group_iot_regex_deny.local.txt (not overwritten by updates).
+
+# Abused / throw-away TLDs that IoT devices have no reason to resolve
+(\.|^)(zip|mov|top|xyz|cyou|icu|rest|quest|bond|sbs|cfd|click|buzz|monster|gq|tk|ml|cf|ga)$
+
+# Free reverse-proxy / tunnel services often used for C2 and data exfiltration
+(\.|^)(ngrok(-free)?\.(io|app|dev)|trycloudflare\.com|serveo\.net|localtunnel\.me|loca\.lt|pagekite\.me)$
+
+# Paste / file-drop sites used to stage malware
+(\.|^)(pastebin\.com|paste\.ee|hastebin\.com|transfer\.sh|anonfiles\.com|file\.io)$
+
+# Raw IP-literal style names (e.g. 1-2-3-4.nip.io, sslip.io wildcards)
+(\.|^)(nip\.io|sslip\.io|xip\.io)$

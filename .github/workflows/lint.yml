@@ -23,7 +23,7 @@ jobs:
         run: |
           for f in *.sh; do
             case "$f" in
-              pihole_allowlist.sh|install_pihole.sh|setup_unbound.sh) bash -n "$f" ;;
+              pihole_allowlist.sh|install_pihole.sh|setup_unbound.sh|deploy_multi_pi.sh) bash -n "$f" ;;
               *) sh -n "$f" ;;
             esac && echo "ok $f"
           done

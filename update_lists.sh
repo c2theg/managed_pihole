@@ -45,7 +45,8 @@ Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5
 #                         (default https://raw.githubusercontent.com/c2theg/managed_pihole/main)
 #
 #  ChangeLog:
-#    1.0.1  11/5/2026  (Claude Code) Also downloads mcp_server.py.
+#    1.0.1  11/5/2026  (Claude Code) Also downloads mcp_server.py, vlan_report.py,
+#                      upsert_vlan_groups.py and the group_iot_*.txt lists.
 #    1.0.0  11/5/2026  (Claude Code) Updated for Pi-hole v6 and Docker:
 #             - Works with Docker installs via pihole_common.sh.
 #             - FIX: the script deleted and re-downloaded itself while running, which
@@ -92,7 +93,8 @@ REPO="${MANAGED_PIHOLE_REPO:-https://raw.githubusercontent.com/c2theg/managed_pi
 FILES="update_lists.sh pihole_common.sh pihole_api.py upsert_lists.py backup_dbs.py
 pihole_allowlist.sh export_custom_lists.sh cleanup.sh upsert_adguardhome.py setup_unbound.sh doh_servers.txt
 cgray_blocklists.txt blocklist_regexs_cg.txt allowlist_regexs_cg.txt allow_regex_social_cg.txt
-pihole_exclude_list.txt mcp_server.py"
+pihole_exclude_list.txt mcp_server.py vlan_report.py
+upsert_vlan_groups.py group_iot_blocklists.txt group_iot_regex_deny.txt"
 
 #-------------------------------------------------------------------------------
 echo "Checking Internet status..."

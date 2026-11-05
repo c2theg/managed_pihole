@@ -6,7 +6,7 @@
 #
 #  pihole_api.py  -  tiny Pi-hole v6 REST API client (Python standard library only)
 #
-#  Version:       1.0.1
+#  Version:       1.1.0
 #  Last Updated:  11/5/2026
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #
@@ -36,6 +36,8 @@
 #    https://github.com/pi-hole/FTL/tree/master/src/api/docs/content/specs
 #
 #  ChangeLog:
+#    1.1.0  11/5/2026  load_settings(): also ./managed_pihole.local.conf, and ALERT_* / MCP_* /
+#                      THREAT_* / BYPASS_* environment variables (vlan_report.py).
 #    1.0.1  11/5/2026  load_settings() also reads UNBOUND_CONTROL, UNBOUND_CONTAINER and
 #                      MCP_SERVICES (used by mcp_server.py).
 #    1.0.0  11/5/2026  New file (Claude Code). Shared API client used by
@@ -52,10 +54,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CONFIG_FILES = ["/etc/managed_pihole.conf", os.path.join(SCRIPT_DIR, "managed_pihole.conf")]
+# Later files win. managed_pihole.local.conf holds site extras (e.g. written by
+# deploy_multi_pi.sh) that must survive regeneration of managed_pihole.conf.
+CONFIG_FILES = ["/etc/managed_pihole.conf", os.path.join(SCRIPT_DIR, "managed_pihole.conf"),
+                os.path.join(SCRIPT_DIR, "managed_pihole.local.conf")]
 DEFAULT_URLS = [
     "http://127.0.0.1/api",
     "http://127.0.0.1:8080/api",
@@ -85,6 +90,9 @@ def load_settings():
                 "UNBOUND_UPSTREAM", "UNBOUND_CONTROL", "UNBOUND_CONTAINER", "MCP_SERVICES"):
         if os.environ.get(key):
             settings[key] = os.environ[key]
+    for key, value in os.environ.items():  # report / alert / MCP settings
+        if value and key.startswith(("ALERT_", "MCP_", "THREAT_", "BYPASS_")):
+            settings[key] = value
     settings.setdefault("PIHOLE_MODE", "auto")
     settings.setdefault("PIHOLE_CONTAINER", "pihole")
     return settings

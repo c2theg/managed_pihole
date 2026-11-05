@@ -1084,7 +1084,7 @@ sync_lists_agh() {
 }
 
 # ---- MCP server for AI agents (read-only stats, started over SSH) ----
-MCP_FILES="mcp_server.py pihole_api.py upsert_adguardhome.py"
+MCP_FILES="mcp_server.py pihole_api.py upsert_adguardhome.py vlan_report.py"
 MCP_DIR="${PIHOLE_BASE}/mcp"
 MCP_USER="${MCP_USER:-dnsmcp}"
 
@@ -1537,7 +1537,7 @@ if is_true "${ENABLE_MCP}"; then
   mkdir -p "${PIHOLE_BASE}/mcp"
   # Run from a repo checkout? Seed with the local copies (the repo copy wins later if newer).
   _src="$(dirname "$(readlink -f "$0")")"
-  for _f in mcp_server.py pihole_api.py upsert_adguardhome.py; do
+  for _f in mcp_server.py pihole_api.py upsert_adguardhome.py vlan_report.py; do
     [[ -f "${_src}/${_f}" ]] && install -m 755 "${_src}/${_f}" "${PIHOLE_BASE}/mcp/${_f}"
   done
   # Default keys: the ones that can already log in as the sudo user (no new access).

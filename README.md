@@ -2,7 +2,7 @@
 
 Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuard Home**, with **Unbound** as the recursive, DNSSEC-validating upstream. Each one works on a **native OS install** or in **Docker**.
 
-- **Version:** 1.3.0
+- **Version:** 1.4.0
 - **Last updated:** 11/5/2026
 - **Updated by:** Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)
 - **Pi-hole docs:** https://docs.pi-hole.net/main/post-install/
@@ -22,10 +22,14 @@ Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuar
 | `export_custom_lists.sh` | 1.0.0 | Exports your custom domains and subscribed lists to text files |
 | `cleanup.sh` | 1.0.0 | Deletes rotated logs, flushes the query log |
 | `pihole_common.sh` | 1.0.0 | *New.* Shared shell helpers: detects native vs Docker |
-| `pihole_api.py` | 1.0.1 | *New.* Small Pi-hole v6 REST API client (Python standard library only) |
+| `pihole_api.py` | 1.1.0 | *New.* Small Pi-hole v6 REST API client (Python standard library only) |
 | `upsert_adguardhome.py` | 1.0.0 | *New.* Applies the same lists to **AdGuard Home** through its API (native or Docker) |
 | `setup_unbound.sh` | 1.1.0 | *New.* Native **Unbound** on 127.0.0.1:5335 (Pi-hole guide), then points Pi-hole or AdGuard Home at it |
-| `mcp_server.py` | 1.0.0 | *New.* Read-only **MCP server**: AI agents can read Pi-hole / AdGuard Home / Unbound stats ([below](#ai-agent-access-mcp-server)) |
+| `mcp_server.py` | 1.1.0 | *New.* Read-only **MCP server**: AI agents can read Pi-hole / AdGuard Home / Unbound stats, per VLAN too ([below](#ai-agent-access-mcp-server)) |
+| `deploy_multi_pi.sh` | 1.0.0 | *New.* One Pi-hole for several VLANs (trunk): per-VLAN groups and lists, dns-only firewall, per-VLAN monitoring and alerts ([below](#several-vlans-one-pi-hole-deploy_multi_pish)) |
+| `upsert_vlan_groups.py` | 1.0.0 | *New.* One Pi-hole group per VLAN subnet, each with its own lists (`group_<name>_*.txt`) |
+| `vlan_report.py` | 1.0.0 | *New.* Per-VLAN / per-device DNS report and alerts (threat hits, floods, DNS bypass, NXDOMAIN) |
+| `group_iot_blocklists.txt`, `group_iot_regex_deny.txt` | 0.1.0 | *New.* Extra lists for the IoT group only |
 | `install_pihole.sh` | 6.4.0 | Docker stack installer: Pi-hole **or** AdGuard Home → Unbound → dnscrypt-proxy (+ WireGuard), with daily list sync |
 | `cgray_blocklists.txt` | 0.6.1 | Subscribed block-list URLs: all Firebog "ticked" lists plus every list in this repo |
 | `blocklist_regexs_cg.txt` | 0.1.0 | Regex deny |
@@ -214,6 +218,74 @@ sudo /opt/managed_pihole/cleanup.sh
 | `/var/log/pihole.log`, `/var/log/pihole-FTL.log` | `/var/log/pihole/pihole.log`, `/var/log/pihole/FTL.log` |
 
 On Docker, prefix commands with `docker exec pihole`, e.g. `docker exec pihole pihole allow example.com`. Don't run `pihole -up` inside the container. Update by pulling the new image: `docker compose pull && docker compose up -d`.
+
+---
+
+## Several VLANs, one Pi-hole (`deploy_multi_pi.sh`)
+
+One Pi-hole serves every VLAN of a trunk. Each VLAN is a Pi-hole **group** with its own lists, and has its own DNS address on the VM. You can see what's happening on each VLAN, and you get alerts when a device misbehaves. It works on Proxmox and VMware, and the VLANs arrive as a trunk on the VM's single NIC.
+
+```
+trunk (ens18) ──┬─ untagged (VLAN 0)  Users  192.168.1.10/24   (the VM's normal address)
+                └─ vlan666 (tag 666)  IoT    192.168.66.2/24   (added by the script)
+Pi-hole groups:  Users = 192.168.1.0/24  → normal lists
+                 IoT   = 192.168.66.0/24 → normal lists + group_iot_*.txt (much stricter)
+```
+
+```sh
+git clone https://github.com/c2theg/managed_pihole.git && cd managed_pihole
+sudo bash deploy_multi_pi.sh
+```
+
+**What it asks you:**
+- the trunk interface
+- a name for the untagged VLAN
+- for each tagged VLAN: its ID, a name, this VM's IP/prefix on it, `dns-only` or `full`, and its router (used for device names)
+- an alert webhook
+
+It then:
+1. **Hypervisor:** detects Proxmox/KVM or VMware and prints what to set there:
+   - Proxmox: "VLAN aware" bridge, and an empty VLAN tag on the VM's NIC.
+   - VMware: port group VLAN 4095 or VLAN trunking.
+   - No promiscuous mode or MAC spoofing is needed, because every VLAN uses the VM's own MAC.
+2. **VLAN interfaces:** adds one netplan VLAN interface per tag: static address, no gateway, no IPv6. Your existing network config is not touched.
+3. **Docker stack:** runs `install_pihole.sh` (Pi-hole, Unbound, dnscrypt-proxy, managed lists, MCP server) unless it is already installed.
+4. **Groups:** with `upsert_vlan_groups.py`, creates a group per VLAN and adds the VLAN subnet as a client (Default + group). It assigns that group's lists, then re-syncs them daily.
+5. **`dns-only` VLANs** (IoT by default): the VM answers DNS and ping there, and refuses everything else, including the web UI, SSH, routing through the VM, and IPv6.
+6. **Monitoring:**
+   - `sudo dns-vlan-report`
+   - the MCP tools `pihole_vlan_report`, `pihole_client_report` and `pihole_groups`
+   - alerts every 15 minutes, written to `journalctl -u dns-vlan-alerts` and, if set, `ALERT_WEBHOOK` (ntfy, Slack, Discord, or any URL)
+
+To skip the questions: `sudo VLANS="Users:0:auto IoT:666:192.168.66.2/24" ROUTERS="Users=192.168.1.1 IoT=192.168.66.1" bash deploy_multi_pi.sh`. `DRY_RUN=true` previews the changes. Re-runs offer the saved setup (`/opt/pihole/multi_pi.conf`) and only change what differs.
+
+**Lists per VLAN.** Every VLAN gets the normal managed lists. A group adds its own files:
+
+| File (`<name>` = group name in lower case) | What it adds for that VLAN only |
+|---|---|
+| `group_<name>_blocklists.txt` | Block-list URLs |
+| `group_<name>_regex_deny.txt`, `group_<name>_deny.txt` | Regex / exact deny |
+| `group_<name>_allow.txt`, `group_<name>_regex_allow.txt` | Exact / regex allow, to unbreak a device for this VLAN only |
+| same names ending in `.local.txt` | Your own additions. Never downloaded or overwritten. |
+
+`group_iot_blocklists.txt` ships with these HaGeZi lists:
+- threat intelligence (medium): malware, C2, phishing
+- Pro++ ads and tracking
+- vendor telemetry for Amazon, Apple, Samsung, LG, Roku, Xiaomi, Huawei, TikTok, Windows and others
+- DoH/VPN/proxy bypass endpoints
+- dynamic DNS
+- URL shorteners
+
+`group_iot_regex_deny.txt` blocks throw-away TLDs, tunnel services (ngrok, trycloudflare), paste sites, and `nip.io`-style names. After changing a file: `sudo /opt/pihole/vlan/vlan-sync.sh --no-fetch`.
+
+**Seeing what each VLAN does.** `sudo dns-vlan-report --hours 24` (or `--vlan IoT`, `--client 192.168.66.23`, `--json`) shows, per VLAN and per busy device:
+- queries, % blocked, query rate, and the NXDOMAIN rate (high values point to malware generating domain names, beaconing, or a broken device)
+- top domains, and top blocked domains, each labelled with *why* it was blocked: **threat** (threat-intel list), **bypass** (DoH/VPN/proxy), or ads
+- Pi-hole rate-limit events (query floods)
+
+Alerts fire on any threat-list hit, bypass attempts, floods, a high NXDOMAIN rate or a high blocked %. Thresholds are stricter on `dns-only` VLANs; see `vlan_report.py` for the `ALERT_*` settings, which you can set per VLAN, e.g. `ALERT_BLOCKED_PCT_IOT=60`. The same alert is not repeated for 6 hours.
+
+**On your router/firewall:** set each VLAN's DHCP DNS to the VM's address on that VLAN, and to nothing else. Block IoT from reaching other VLANs, and from reaching any other DNS server (ports 53 and 853), so that devices must use the Pi-hole. Individual clients you add in Pi-hole (for example `SOCIAL_CLIENTS`) take priority over their subnet's group, so give them the VLAN group as well if they should keep its lists.
 
 ---
 

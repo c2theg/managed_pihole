@@ -1,0 +1,38 @@
+# group_iot_blocklists.txt - EXTRA block lists for the "IoT" group only
+# Version: 0.1.0 | Updated: 11/5/2026 | Claude Code (Anthropic) - Claude Opus 5.5 (claude-opus-5-5)
+#
+# Applied by upsert_vlan_groups.py (deploy_multi_pi.sh) to clients in the IoT VLAN, ON TOP
+# of the normal lists every client gets (cgray_blocklists.txt). IoT devices need very
+# few domains, so this is far stricter than what Users get. If a device breaks, unblock
+# its domains for IoT only in group_iot_allow.local.txt (one domain per line).
+# Add your own lists in group_iot_blocklists.local.txt (not overwritten by updates).
+#
+# All lists: HaGeZi DNS blocklists, Adblock format (Pi-hole v6 reads it natively)
+# https://github.com/hagezi/dns-blocklists - checked 11/5/2026 (HTTP 200).
+
+# --- Threat intelligence: malware, C2, phishing, cryptojacking, scams ---
+# medium = ~0.5 M domains. For the full feed (~1.6 M, needs more RAM) use adblock/tif.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif.medium.txt
+
+# --- Aggressive ads / tracking / telemetry ("Pro++") ---
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/pro.plus.txt
+
+# --- Vendor telemetry ("native trackers") of TVs, speakers, phones, PCs ---
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.amazon.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.apple.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.huawei.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.lgwebos.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.oppo-realme.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.roku.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.samsung.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.tiktok.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.vivo.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.winoffice.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/native.xiaomi.txt
+
+# --- Stop devices from going around Pi-hole (DoH / VPN / proxy / Tor endpoints) ---
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/doh-vpn-proxy-bypass.txt
+
+# --- Dynamic DNS and URL shorteners: common for malware C2, rarely needed by IoT ---
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/dyndns.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/urlshortener.txt

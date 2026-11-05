@@ -6,7 +6,7 @@
 #
 #  mcp_server.py  -  read-only MCP server for Pi-hole v6, AdGuard Home and Unbound
 #
-#  Version:       1.0.0
+#  Version:       1.1.0
 #  Last Updated:  11/5/2026
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #
@@ -41,6 +41,8 @@
 #    UNBOUND_CONTAINER  default: unbound
 #
 #  ChangeLog:
+#    1.1.0  11/5/2026  (Claude Code) pihole_vlan_report, pihole_client_report, pihole_groups
+#                      (per-VLAN visibility for deploy_multi_pi.sh; uses vlan_report.py).
 #    1.0.0  11/5/2026  New file (Claude Code).
 #
 #  Sources:
@@ -62,7 +64,7 @@ import traceback
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pihole_api import PiholeAPI, PiholeAPIError, load_settings  # noqa: E402
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 SERVER_NAME = "managed_pihole"
 PROTOCOL_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"]
 
@@ -165,6 +167,8 @@ class Pihole:
         elif kind == "clients":
             params["blocked"] = "true" if blocked else "false"
             data = self.get(prefix + "/top_clients", params)
+            if rng and not blocked:
+                data["note"] = "long-term counts are PERMITTED queries only (blocked ones excluded)"
         elif kind == "upstreams":
             data = self.get(prefix + "/upstreams", params if rng else None)
         elif kind == "query_types":
@@ -242,6 +246,51 @@ class Pihole:
         return {"count": len(rows),
                 "domains_total": sum((r.get("number") or 0) for r in rows if r.get("enabled")),
                 "lists": rows}
+
+    # ---- per-VLAN / per-client (vlan_report.py) ----
+    def _reporter(self):
+        try:
+            import vlan_report  # noqa: E402  (next to this file)
+        except ImportError:
+            raise ToolError("vlan_report.py is missing next to mcp_server.py")
+        return vlan_report.Reporter(self.get, self.settings), vlan_report
+
+    def vlan_report(self, args):
+        r, mod = self._reporter()
+        try:
+            return r.vlan_report(hours=float(args.get("hours") or 24), detail=clamp(args.get("detail"), 1, 25, 5),
+                                 only_vlan=args.get("vlan") or None)
+        except mod.ReportError as e:
+            raise ToolError(str(e))
+
+    def client_report(self, args):
+        ip = (args.get("client") or "").strip()
+        if not ip:
+            raise ToolError("client (IP address) is required")
+        r, mod = self._reporter()
+        try:
+            return r.client_report(ip, hours=float(args.get("hours") or 24))
+        except mod.ReportError as e:
+            raise ToolError(str(e))
+
+    def groups(self, args):
+        groups = self.get("/groups").get("groups", [])
+        names = {g["id"]: g["name"] for g in groups}
+        clients = [{"client": c.get("client"), "name": c.get("name") or None, "comment": c.get("comment"),
+                    "groups": [names.get(g, g) for g in c.get("groups", [])]}
+                   for c in self.get("/clients").get("clients", [])]
+        per_group = {g["name"]: {"enabled": g.get("enabled"), "comment": g.get("comment"), "lists": 0,
+                                 "domains": 0} for g in groups}
+        for item in self.get("/lists").get("lists", []):
+            for g in item.get("groups", []):
+                if names.get(g) in per_group:
+                    per_group[names[g]]["lists"] += 1
+        for item in self.get("/domains").get("domains", []):
+            for g in item.get("groups", []):
+                if names.get(g) in per_group:
+                    per_group[names[g]]["domains"] += 1
+        return {"groups": per_group, "clients": clients,
+                "note": "Every client is in Default plus its own groups; a client's lists = union of its groups."}
 
 
 # =============================================================================
@@ -530,6 +579,24 @@ def build_tools(services, settings):
             "diagnosis messages.", {}, p.system)
         add("pihole_lists", "Pi-hole subscribed lists",
             "Every subscribed allow/block list with domain count, status and last update.", {}, p.lists)
+        add("pihole_vlan_report", "Pi-hole per-VLAN report",
+            "DNS activity per VLAN (Pi-hole subnet clients in groups, e.g. Users / IoT): queries, blocked, "
+            "and for the busiest clients query rate, NXDOMAIN rate, top (blocked) domains, hits on "
+            "threat-intel lists (malware/C2/phishing), DoH/VPN bypass attempts, rate-limit events, plus "
+            "alerts for clients over the thresholds. Use this to find a misbehaving (IoT) device.",
+            {"hours": {"type": "number", "minimum": 0.1, "default": 24},
+             "vlan": {"type": "string", "description": "only this VLAN / group name"},
+             "detail": {"type": "integer", "minimum": 1, "maximum": 25, "default": 5,
+                        "description": "clients analysed per VLAN (top by volume and top by blocks)"}},
+            p.vlan_report)
+        add("pihole_client_report", "Pi-hole client report",
+            "Everything about one device: query rate, blocked %, NXDOMAIN %, top domains, top blocked "
+            "domains with the list that blocked them (threat / bypass / ads), and alert flags.",
+            {"client": {"type": "string", "description": "client IP"},
+             "hours": {"type": "number", "minimum": 0.1, "default": 24}}, p.client_report)
+        add("pihole_groups", "Pi-hole groups and clients",
+            "Groups (e.g. one per VLAN) with how many lists/domains each has, and which clients or "
+            "subnets belong to which groups.", {}, p.groups)
 
     if "adguardhome" in services:
         a = AdGuard(settings)

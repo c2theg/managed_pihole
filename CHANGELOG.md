@@ -3,6 +3,30 @@
 All notable changes to managed_pihole. Each file also carries its own version and
 changelog in its header. Dates are M/D/YYYY.
 
+## 1.4.0 (11/5/2026): one Pi-hole for several VLANs
+Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
+
+- **New `deploy_multi_pi.sh` 1.0.0**: one Pi-hole serving every VLAN of a trunk (Proxmox or VMware VM).
+  - Asks for the trunk NIC and each VLAN (ID, name, this VM's IP/prefix, `dns-only`/`full`, router) and the alert webhook. Re-runs offer the saved setup. `VLANS=...` skips the questions; `DRY_RUN=true` previews.
+  - Detects the hypervisor and prints the Proxmox or VMware settings.
+  - Adds netplan VLAN interfaces, and re-applies when an interface is missing. Then runs `install_pihole.sh` and creates a group per VLAN.
+  - `dns-only` firewall (INPUT and DOCKER-USER chains, IPv6 off) for restricted VLANs.
+  - Per-VLAN reverse lookups, so reports show device names.
+  - `dns-vlan-report`, alerts every 15 minutes (journal + webhook), daily group re-sync.
+- **New `upsert_vlan_groups.py` 1.0.0**: group + subnet client per VLAN, and per-group lists from `group_<name>_*.txt` (+ `.local.txt`).
+  - Idempotent; prunes only its own entries and clients. Skips lists already in Default.
+  - Runs gravity only when lists were added.
+- **New `vlan_report.py` 1.0.0**: per-VLAN and per-device report and alerts. It covers threat-list and bypass hits (classified via `/api/search`), NXDOMAIN rate, query rate, blocked % and rate-limit events.
+  - Per-VLAN thresholds; alerts are not repeated within 6 hours.
+  - Handles a quirk of Pi-hole's long-term `top_clients` endpoint: with `blocked=false` it counts permitted queries only.
+- **New `group_iot_blocklists.txt` / `group_iot_regex_deny.txt` 0.1.0**: 16 HaGeZi lists (all checked for HTTP 200, 647k domains in total) plus 4 regexes, for the IoT group only.
+- **`mcp_server.py` 1.0.0 → 1.1.0**: new tools `pihole_vlan_report`, `pihole_client_report` and `pihole_groups`. `pihole_top` notes the permitted-only quirk.
+- **`pihole_api.py` → 1.1.0**: also reads `managed_pihole.local.conf`, and `ALERT_*` / `MCP_*` / `THREAT_*` / `BYPASS_*` environment variables.
+- **`install_pihole.sh`**: MCP files include `vlan_report.py`. **`update_lists.sh`**: downloads the new files. **CI**: `deploy_multi_pi.sh` syntax check.
+- **Tested**:
+  - Pi-hole v6 with two subnets as VLANs: IoT-only blocks applied to IoT only, and a per-VLAN allow worked. The second run made 0 changes; prune worked.
+  - Ubuntu 24.04 test VM, real `netplan generate` and iptables, live Pi-hole: interactive setup, a trunk with a tagged VLAN 666 device and an untagged device. From the IoT VLAN, DNS and ping work and TCP is dropped; from Users everything works. Re-runs were idempotent.
+
 ## 1.3.0 (11/5/2026): MCP server for AI agents
 Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
 
