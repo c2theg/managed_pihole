@@ -1,5 +1,13 @@
 # By: Christopher Gray
-#  Updated: 11/14/2020
+#  Version: 0.1.0
+#  Updated: 11/5/2026
+#  Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+#
+#  REGEX DENY list - imported by upsert_lists.py (Pi-hole v6 API), Default group.
+#  ChangeLog:
+#    0.1.0  11/5/2026  (Claude Code) Reviewed for Pi-hole v6: all regexes are valid,
+#                      no changes. Now imported through the v6 API.
+#    0.0.x  11/14/2020 Original version.
 #=================
 ((^)|(\.))tp-link\.
 #--- Generic ---

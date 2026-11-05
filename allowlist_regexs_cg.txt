@@ -1,5 +1,14 @@
 # By: Christopher Gray
-#  Updated: 1/29/2021
+#  Version: 0.1.0
+#  Updated: 11/5/2026
+#  Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+#
+#  REGEX ALLOW list - imported by upsert_lists.py (Pi-hole v6 API), Default group.
+#  ChangeLog:
+#    0.1.0  11/5/2026  (Claude Code) For Pi-hole v6. Fixed the importer: these were being
+#                      added as exact-match (type 0) entries, so the regexes never matched.
+#                      They are now real regex allow entries. No regex changes.
+#    0.0.x  1/29/2021  Original version.
 #=======================
 # EXAMPLE (WILDCARD)
 

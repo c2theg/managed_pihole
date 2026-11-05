@@ -1,0 +1,10 @@
+# Keep Unix line endings: CRLF breaks shell scripts (bad interpreter: /bin/sh^M)
+# and adds "\r" to every domain in the lists.
+* text=auto eol=lf
+*.sh  text eol=lf
+*.py  text eol=lf
+*.txt text eol=lf
+*.md  text eol=lf
+*.conf* text eol=lf
+*.zip binary
+*.gz  binary

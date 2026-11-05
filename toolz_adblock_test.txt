@@ -1,3 +1,12 @@
+# managed_pihole - ad-block test domains
+# Version: 0.1.0
+# Updated: 11/5/2026   Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+# ChangeLog:
+#   0.1.0  11/5/2026  (Claude Code) Added this header. Not imported automatically.
+#                     Use it to check blocking, e.g.  dig @<pihole-ip> pixel.facebook.com
+#                     Note: the "*.js" lines are file names, not domains; Pi-hole skips them
+#                     as invalid if this file is ever added as a list. No changes.
+#
 # From: https://d3ward.github.io/toolz/adblock.html
 ads.js
 partner.ads.js

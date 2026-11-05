@@ -1,0 +1,60 @@
+# managed_pihole - files that must never be committed
+# Updated: 11/5/2026 by Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+
+# Local settings / secrets (copy managed_pihole.conf.example -> managed_pihole.conf)
+managed_pihole.conf
+*.env
+secrets/
+*_password*.txt
+cli_pw
+*.key
+*.pem
+*.crt
+*.p12
+*.db
+*.db-wal
+*.db-shm
+
+# Backups and exports created by the scripts
+pihole_backups/
+*.backup
+*.backup.gz
+pihole-teleporter_*.zip
+exwhite.txt
+exblack.txt
+regwhite.txt
+regblack.txt
+adlists_block.txt
+adlists_allow.txt
+export/
+
+# Pi-hole / AdGuard Home / installer data (if run from inside the repo)
+etc-pihole/
+etc-dnsmasq.d/
+adguardhome/
+unbound/
+dnscrypt/
+wireguard/
+logrotate/
+docker-compose.yml
+docker-compose.override.yml
+pihole-maint.sh
+
+# Logs and temp files
+*.log
+*.bak
+*.tmp
+*.swp
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

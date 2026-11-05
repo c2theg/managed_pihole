@@ -1,3 +1,12 @@
+# managed_pihole - DNS-over-HTTPS / DNS-over-TLS servers
+# Version: 0.1.0
+# Updated: 11/5/2026   Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+# ChangeLog:
+#   0.1.0  11/5/2026  (Claude Code) Added this header. Not imported automatically.
+#                     To block them on Pi-hole v6:  pihole deny <domain> ...
+#                     (Docker: docker exec pihole pihole deny <domain> ...)
+#                     No domain changes.
+#
 # allow or block these if you feel your network should have them
 # https://dnsprivacy.org/test_servers/
 

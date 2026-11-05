@@ -1,0 +1,51 @@
+# Basic checks on every push / pull request.
+# Added 11/5/2026 by Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+name: lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history, so the secret scan sees every commit
+
+      - name: Secret scan (gitleaks, full history)
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.18.4 \
+            detect --source /repo --config /repo/.gitleaks.toml --redact --no-banner
+
+      - name: Shell syntax
+        run: |
+          for f in *.sh; do
+            case "$f" in
+              pihole_allowlist.sh|install_pihole.sh|setup_unbound.sh) bash -n "$f" ;;
+              *) sh -n "$f" ;;
+            esac && echo "ok $f"
+          done
+
+      - name: ShellCheck (errors only)
+        run: shellcheck -S error *.sh
+
+      - name: Python syntax
+        run: python3 -m py_compile *.py
+
+      - name: List files use LF line endings
+        run: |
+          if grep -lI $'\r' *.txt *.sh *.py; then
+            echo "CRLF line endings found in the files above"; exit 1
+          fi
+
+      - name: Block-list URLs are well formed
+        run: |
+          bad=$(grep -vE '^\s*(#|$)' cgray_blocklists.txt | grep -vE '^https?://[^[:space:]]+$' || true)
+          [ -z "$bad" ] || { echo "Bad lines in cgray_blocklists.txt:"; echo "$bad"; exit 1; }
+
+      - name: Files downloaded by update_lists.sh exist
+        run: |
+          files=$(sed -n '/^FILES="/,/"$/p' update_lists.sh | tr -d '"' | sed 's/^FILES=//')
+          for f in $files; do [ -f "$f" ] || { echo "missing: $f"; exit 1; }; done

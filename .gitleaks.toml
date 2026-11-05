@@ -1,0 +1,15 @@
+# gitleaks secret-scanner config (https://github.com/gitleaks/gitleaks)
+# Added 11/5/2026 by Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+# Run locally before pushing:
+#   docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.18.4 detect --source /repo --redact
+title = "managed_pihole"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known public values (not secrets)"
+regexes = [
+  # DNSCrypt's PUBLIC minisign key used to verify resolver lists (install_pihole.sh)
+  '''RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3''',
+]

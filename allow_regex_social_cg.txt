@@ -1,5 +1,16 @@
 # By: Christopher Gray
-#  Updated: 12/18/2020
+#  Version: 0.1.0
+#  Updated: 11/5/2026
+#  Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+#
+#  ChangeLog:
+#    0.1.0  11/5/2026  (Claude Code) For Pi-hole v6. upsert_lists.py now adds these as
+#                      REGEX ALLOW entries in the group "Allow_Social" only (created
+#                      automatically). Put the clients that may use social media in that
+#                      group (web UI: Group Management > Clients). Before this, a bug
+#                      added them as exact-match entries for everyone, so they did nothing.
+#                      No regex changes.
+#    0.0.x  12/18/2020 Original version.
 #
 # --- UNBREAK Regex list: For SOCIAL MEDIA ---
 #  Purpose: to unblock domains in this catagory if they might of been block by another 3rd party list

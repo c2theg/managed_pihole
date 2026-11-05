@@ -1,6 +1,10 @@
 # Social blocklist - by: Chris Gray 
 # Date:  11/17/2020
-# Version: 0.0.20
+# Version: 0.0.21
+# Updated: 11/5/2026   Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+# ChangeLog:
+#   0.0.21  11/5/2026  (Claude Code) Reviewed for Pi-hole v6 - no domain changes. Plain
+#                       domain-per-line format is still supported by v6 gravity.
 # Fetch the latest version of this file: 
 # https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_chat.txt
 # ========================================================================================

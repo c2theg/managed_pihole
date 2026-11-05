@@ -1,3 +1,18 @@
+# managed_pihole - excluded domains (hidden from the dashboard top lists and query log)
+# Version: 0.1.0
+# Updated: 11/5/2026   Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+#
+# Pi-hole v6: upsert_lists.py converts each line to a regex and saves the list to
+# webserver.api.excludeDomains (v5 used API_EXCLUDE_DOMAINS in setupVars.conf):
+#    example.com     ->  ^example\.com$          (only that name)
+#    *.example.com   ->  (^|\.)example\.com$     (the name and all sub-domains)
+# Lines starting with # are ignored.
+#
+# ChangeLog:
+#   0.1.0  11/5/2026  (Claude Code) Added this header (comments now allowed).
+#                     Fixed typo *.playlstation.net -> *.playstation.net.
+#                     Duplicates (*.googleapis.com, plex.tv) are removed automatically.
+#
 localhost
 local
 wlan0
@@ -170,7 +185,7 @@ firetvcaptiveportal.com
 lightstep.kaizen.nvidia.com
 api.amazonalexa.com
 ps5.np.playstation.net
-*.playlstation.net
+*.playstation.net
 desktop.docker.com
 fw-update2.smartthings.com
 go-updater.brave.com

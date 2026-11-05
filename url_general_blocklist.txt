@@ -1,3 +1,14 @@
+# managed_pihole - general domain blocklist (one domain per line)
+# Version: 0.1.0
+# Updated: 11/5/2026   Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+# Raw URL: https://raw.githubusercontent.com/c2theg/managed_pihole/main/url_general_blocklist.txt
+# ChangeLog:
+#   0.1.0  11/5/2026  (Claude Code) Added this header. Reviewed for Pi-hole v6 - the format
+#                     is still supported. Not in cgray_blocklists.txt by default; add the
+#                     raw URL above there to use it. Lines that are not valid domains
+#                     (for example ones starting with "-") are skipped by gravity and
+#                     counted as "invalid". No domain changes.
+#
 mapp.appsmb.com
 
 # ========================================================================================

@@ -1,0 +1,32 @@
+# managed_pihole settings - copy to /etc/managed_pihole.conf (or managed_pihole.conf
+# next to the scripts), then:  sudo chmod 600 /etc/managed_pihole.conf
+# Every line is optional. Environment variables with the same name win.
+# Version: 1.2.0 | Updated: 11/5/2026 | Claude Code (Anthropic) - Claude Opus 5.5
+
+# ---- Which filter do the scripts manage? ----
+#DNS_FILTER=pihole                 # pihole (default) | adguardhome
+
+# ---- Pi-hole v6 ----
+#PIHOLE_MODE=auto                  # auto | native | docker
+#PIHOLE_CONTAINER=pihole           # docker container name
+#PIHOLE_COMPOSE_DIR=/opt/pihole    # folder with docker-compose.yml (image updates)
+#PIHOLE_API_URL=http://127.0.0.1/api
+#PIHOLE_DIR=/etc/pihole            # docker: host path of the /etc/pihole volume
+#PIHOLE_PASSWORD=                  # web or app password; empty = use /etc/pihole/cli_pw
+
+# ---- AdGuard Home ----
+#ADGUARD_URL=http://127.0.0.1
+#ADGUARD_USER=admin
+#ADGUARD_PASSWORD=
+#ADGUARD_SOCIAL_CLIENTS=           # 'kid-laptop|192.168.0.50' allowed to use social media
+
+# ---- Unbound ----
+#UNBOUND_UPSTREAM=127.0.0.1:5335   # AdGuard Home upstream (setup_unbound.sh sets this up)
+#UNBOUND_PORT=5335
+#UNBOUND_IPV6=yes
+
+# ---- update_lists.sh ----
+#MANAGED_PIHOLE_REPO=https://raw.githubusercontent.com/c2theg/managed_pihole/main
+#SKIP_OS_UPDATE=0
+#SKIP_DOWNLOAD=0
+#SKIP_PIHOLE_UPDATE=0

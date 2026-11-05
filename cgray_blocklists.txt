@@ -12,8 +12,27 @@
 #
 #
 #
-# Version:  0.5.5
-# Last Updated:  9/29/2023
+# Version:  0.6.1
+# Last Updated:  11/5/2026
+# Updated by:  Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
+#
+# For Pi-hole v6 (native OS install or Docker). Loaded by upsert_lists.py through the
+# v6 API as "block" lists. One URL per line, lines starting with # are ignored.
+#
+# ChangeLog:
+#   0.6.1  11/5/2026  (Claude Code) Subscribed the other lists in this repo:
+#                     url_general_blocklist.txt, cgray_religion_school.txt and
+#                     toolz_adblock_test.txt (see "Personal" below).
+#   0.6.0  11/5/2026  (Claude Code)
+#     - Added the Firebog "ticked" lists that were missing
+#       (https://v.firebog.net/hosts/lists.php?type=tick): KADhosts, w3kbl, Admiral,
+#       Prigent-Crypto, stalkerware-indicators, cyberhost malware. See the
+#       "Firebog ticked lists" section at the end.
+#     - Disabled (commented out) lists that no longer download (checked 11/5/2026):
+#       CoinBlockerLists hosts + hosts_browser (HTTP 403), osint.digitalside.it (no response),
+#       urlhaus hostfile (HTTP 410 Gone - it is still on the Firebog ticked list).
+#     - Header: "New for pihole 5" -> works with Pi-hole v6.
+#   0.5.5  9/29/2023
 # Changed:
 #  Removing Porn blocks. With them, there are over 4.5 Million URLs.
 #     So to reduce that, use:
@@ -21,7 +40,7 @@
 #         OpenDNS Family Shield: 208.67.222.123 / 2620:119:53::53
 #
 #
-#   New for pihole 5 - importer script
+#   Imported by upsert_lists.py (Pi-hole v6 API)
 #
 # Source:  https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_blocklists.txt
 #
@@ -50,7 +69,7 @@ https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/emd.txt
 https://raw.githubusercontent.com/fredprod/host-file.net-backup/master/exp.txt
 
 https://www.spamhaus.org/drop/drop.txt
-https://zerodot1.gitlab.io/CoinBlockerLists/hosts
+# DISABLED 11/5/2026 (no longer downloads): https://zerodot1.gitlab.io/CoinBlockerLists/hosts
 
 # --- blocklist.site ---
 https://raw.githubusercontent.com/blocklistproject/Lists/master/basic.txt
@@ -100,7 +119,7 @@ https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/android-tracki
 https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/SmartTV.txt
 https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/AmazonFireTV.txt
 https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareHosts.txt
-https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt
+# DISABLED 11/5/2026 (no longer downloads): https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt
 https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt
 https://v.firebog.net/hosts/Prigent-Malware.txt
 https://bitbucket.org/ethanr/dns-blacklists/raw/8575c9f96e5b4a1308f2f12394abd86d0927a4a0/bad_lists/Mandiant_APT1_Report_Appendix_D.txt
@@ -108,9 +127,9 @@ https://phishing.army/download/phishing_army_blocklist_extended.txt
 https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt
 https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt
 https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts
-https://urlhaus.abuse.ch/downloads/hostfile/
+# DISABLED 11/5/2026 (HTTP 410 Gone in gravity; still on the Firebog ticked list): https://urlhaus.abuse.ch/downloads/hostfile/
 https://raw.githubusercontent.com/HorusTeknoloji/TR-PhishingList/master/url-lists.txt
-https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser
+# DISABLED 11/5/2026 (no longer downloads): https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser
 https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
 
 https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/youtubelist.txt
@@ -122,8 +141,21 @@ https://filters.adtidy.org/windows/filters/15.txt
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_chat.txt
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_games.txt
 https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_social.txt
+https://raw.githubusercontent.com/c2theg/managed_pihole/main/cgray_religion_school.txt
+https://raw.githubusercontent.com/c2theg/managed_pihole/main/url_general_blocklist.txt
+https://raw.githubusercontent.com/c2theg/managed_pihole/main/toolz_adblock_test.txt
 #--- Porn ---
 #https://raw.githubusercontent.com/mhhakim/pihole-blocklist/master/porn.txt
 ## https://raw.githubusercontent.com/chadmayfield/my-pihole-blocklists/master/lists/pi_blocklist_porn_all.list
 ## https://raw.githubusercontent.com/chadmayfield/pihole-blocklists/master/lists/pi_blocklist_porn_top1m.list
 #https://blocklistproject.github.io/Lists/alt-version/porn-nl.txt
+
+#------- Firebog "ticked" lists (https://v.firebog.net/hosts/lists.php?type=tick) -------
+# Added 11/5/2026. The other 19 ticked lists were already in this file above.
+# (KADhosts: Firebog ticks the full PolishFiltersTeam list; the KADhole variant above is kept too.)
+https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt
+https://v.firebog.net/hosts/static/w3kbl.txt
+https://v.firebog.net/hosts/Admiral.txt
+https://v.firebog.net/hosts/Prigent-Crypto.txt
+https://raw.githubusercontent.com/AssoEchap/stalkerware-indicators/master/generated/hosts
+https://lists.cyberhost.uk/malware.txt

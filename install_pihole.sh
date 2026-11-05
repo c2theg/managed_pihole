@@ -1,8 +1,30 @@
 #!/bin/bash
-#  By: Christpher Gray | Version 6.0.0 | Updated: 11/5/2026
+#  By: Christpher Gray | Version 6.2.0 | Updated: 11/5/2026
+#  Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #  Install:  wget https://raw.githubusercontent.com/c2theg/srvBuilds/refs/heads/master/install_pihole.sh && chmod u+x install_pihole.sh
 #
-# Pi-hole v6 + Unbound + dnscrypt-proxy (DoH / ODoH) + optional WireGuard
+#  ChangeLog:
+#    6.2.0  11/5/2026  (Claude Code) Import and configure ALL managed lists automatically:
+#      - Lists are imported by default with no prompt (IMPORT_LISTS=false to skip).
+#      - Pi-hole: pihole_exclude_list.txt -> webserver.api.excludeDomains (regex form).
+#      - Pi-hole: social "unbreak" regexes are now ENABLED and assigned only to the
+#        group "Allow_Social" (created automatically) instead of being added disabled.
+#      - NEW SOCIAL_CLIENTS="ip|name ...": devices allowed to use social media.
+#        Pi-hole: added as clients in Default + Allow_Social. AdGuard Home:
+#        passed to upsert_adguardhome.py --social-clients.
+#      - cgray_blocklists.txt now also subscribes url_general_blocklist.txt,
+#        cgray_religion_school.txt and toolz_adblock_test.txt.
+#    6.1.0  11/5/2026  (Claude Code)
+#      - NEW: DNS_FILTER=pihole|adguardhome. AdGuard Home can run in place of Pi-hole,
+#        in front of the same Unbound (+ dnscrypt-proxy). Its first-run wizard is
+#        completed automatically (user "admin", same generated password), upstream is
+#        set to Unbound, and the managed lists are synced with upsert_adguardhome.py
+#        (from c2theg/managed_pihole) - daily, like Pi-hole.
+#      - FIX: exact allowlist sync read only "pihole -w"/"pihole allow" lines. The v6
+#        pihole_allowlist.sh uses an "allow" helper, so those lines are now read too.
+#    6.0.0  11/5/2026  Pi-hole v6 + Unbound + dnscrypt-proxy + WireGuard (Docker).
+#
+# Pi-hole v6 (or AdGuard Home) + Unbound + dnscrypt-proxy (DoH / ODoH) + optional WireGuard
 # Docker installer for Ubuntu 22.04 / 24.04 / 26.04. Safe to re-run: keeps the
 # admin password, WireGuard keys and peers, and the Pi-hole database.
 #
@@ -13,7 +35,7 @@
 #   LAN / VPN clients
 #        │  :53 (UDP/TCP)
 #        ▼
-#   Pi-hole  ─ blocklists, regex, allowlists, DoH-bypass blocking, rate limit
+#   Pi-hole or AdGuard Home (DNS_FILTER) ─ blocklists, regex, allowlists, DoH-bypass blocking, rate limit
 #        │  172.31.53.53:53   (Docker network only, not published)
 #        ▼
 #   Unbound  ─ DNSSEC validation, cache, prefetch, serve-stale, rebind
@@ -50,13 +72,16 @@
 #
 # Options (env vars)
 #   PIHOLE_BASE            install dir                       (default: /opt/pihole)
+#   DNS_FILTER             pihole | adguardhome              (default: prompt, else pihole)
 #   UPSTREAM_MODE          doh | odoh | dot | plain          (default: doh)
 #   DNS_V4                 space-separated IPv4 resolvers    (default: "1.1.1.2 208.67.222.123")
 #   DNS_V6                 space-separated IPv6 resolvers    (default: "2606:4700:4700::1002")
 #   NEXTDNS_ID             use NextDNS over DoH instead of DNS_V4/DNS_V6
 #   ODOH_SERVERS           ODoH targets (dnscrypt names)     (default: "odoh-cloudflare odoh-snowstorm odoh-crypto-sx")
 #   ENABLE_IPV6            auto | true | false               (default: auto)
-#   IMPORT_LISTS           true | false                      (default: prompt, else true)
+#   IMPORT_LISTS           true | false                      (default: true - no prompt)
+#   SOCIAL_CLIENTS         IPs / hostnames / MACs allowed to use social media, space separated
+#                          (default: none - social sites stay blocked for everyone)
 #   BLOCK_DOH_BYPASS       block public DoH endpoints so clients cannot skip Pi-hole (default: true)
 #   LOG_RETENTION_DAYS     query DB + log retention          (default: 10)
 #   AUTO_UPDATE_IMAGES     weekly image pull + redeploy      (default: true)
@@ -89,13 +114,15 @@ TZ="${TZ:-America/New_York}"
 PIHOLE_HTTP_PORT="${PIHOLE_HTTP_PORT:-80}"
 PIHOLE_HTTPS_PORT="${PIHOLE_HTTPS_PORT:-443}"
 
+DNS_FILTER="${DNS_FILTER:-}"
 UPSTREAM_MODE="${UPSTREAM_MODE:-}"
 DNS_V4="${DNS_V4:-1.1.1.2 208.67.222.123}"
 DNS_V6="${DNS_V6:-2606:4700:4700::1002}"
 ODOH_SERVERS="${ODOH_SERVERS:-odoh-cloudflare odoh-snowstorm odoh-crypto-sx}"
 ENABLE_IPV6="${ENABLE_IPV6:-auto}"
 
-IMPORT_LISTS="${IMPORT_LISTS:-}"
+IMPORT_LISTS="${IMPORT_LISTS:-true}"   # all managed lists are imported unless set to false
+SOCIAL_CLIENTS="${SOCIAL_CLIENTS:-}"
 BLOCK_DOH_BYPASS="${BLOCK_DOH_BYPASS:-true}"
 LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS:-10}"
 AUTO_UPDATE_IMAGES="${AUTO_UPDATE_IMAGES:-true}"
@@ -214,6 +241,23 @@ command -v python3 >/dev/null 2>&1 || die "python3 is required (used to build DN
 
 section "Configuration"
 
+if [[ -z "${DNS_FILTER}" ]]; then
+  DNS_FILTER="pihole"
+  if interactive; then
+    cat <<'EOF'
+
+  DNS filter (both use Unbound + the managed lists)
+    1) pihole       - Pi-hole v6 (recommended)
+    2) adguardhome  - AdGuard Home
+
+EOF
+    read -rp "  Choose [1-2] (default 1): " _f
+    case "${_f}" in 2|adguard*) DNS_FILTER=adguardhome ;; *) DNS_FILTER=pihole ;; esac
+  fi
+fi
+DNS_FILTER="$(lower "${DNS_FILTER}")"
+[[ "${DNS_FILTER}" =~ ^(pihole|adguardhome)$ ]] || die "DNS_FILTER must be pihole or adguardhome."
+
 if [[ -z "${UPSTREAM_MODE}" ]]; then
   UPSTREAM_MODE="doh"
   if interactive; then
@@ -241,13 +285,16 @@ fi
 NEXTDNS_ID="${NEXTDNS_ID:-}"
 [[ -z "${NEXTDNS_ID}" || "${NEXTDNS_ID}" =~ ^[A-Za-z0-9]+$ ]] || die "NEXTDNS_ID must be alphanumeric."
 
-if [[ -z "${IMPORT_LISTS}" ]] && interactive; then
-  echo ""
-  echo "  Managed lists from github.com/c2theg/managed_pihole:"
-  echo "    adlists catalog, regex deny/allow, exact allowlist, DoH-bypass blocking."
-  echo "    Synced every day; gravity rebuild takes ~5-10 min the first time."
+is_true "${IMPORT_LISTS}" && IMPORT_LISTS=true || IMPORT_LISTS=false
+if [[ "${IMPORT_LISTS}" == "true" ]]; then
+  info "Managed lists from github.com/c2theg/managed_pihole will be imported and synced daily:"
+  info "  block lists, regex deny/allow, exact allowlist, excluded domains, social group,"
+  info "  DoH-bypass blocking. First gravity/filter build takes ~5-10 min. (IMPORT_LISTS=false to skip)"
+  if [[ -z "${SOCIAL_CLIENTS}" ]] && interactive; then
+    read -rp "  Devices allowed to use social media (IPs/hostnames, space separated, Enter = none): " SOCIAL_CLIENTS
+  fi
 fi
-ask_yn IMPORT_LISTS "Import and auto-sync the managed lists?" y
+[[ -z "${SOCIAL_CLIENTS}" || "${SOCIAL_CLIENTS}" =~ ^[A-Za-z0-9.:_/\ -]+$ ]] || die "SOCIAL_CLIENTS may only contain IPs, subnets, MACs or hostnames."
 
 if [[ -z "${ENABLE_WIREGUARD}" ]] && interactive; then
   echo ""
@@ -278,9 +325,11 @@ if [[ "${ENABLE_IPV6}" == "auto" ]]; then
 fi
 is_true "${ENABLE_IPV6}" && ENABLE_IPV6=true || ENABLE_IPV6=false
 
+info "DNS filter    : ${DNS_FILTER}"
 info "Upstream mode : ${UPSTREAM_MODE}"
 info "IPv6 upstream : ${ENABLE_IPV6}"
 info "Managed lists : ${IMPORT_LISTS}"
+info "Social clients: ${SOCIAL_CLIENTS:-none}"
 info "WireGuard     : ${ENABLE_WIREGUARD}"
 
 # =============================================================
@@ -288,6 +337,7 @@ info "WireGuard     : ${ENABLE_WIREGUARD}"
 # =============================================================
 
 mkdir -p "${PIHOLE_BASE}"/{etc-pihole,secrets,unbound,dnscrypt,logrotate}
+[[ "${DNS_FILTER}" == "adguardhome" ]] && mkdir -p "${PIHOLE_BASE}"/adguardhome/{work,conf}
 chmod 700 "${PIHOLE_BASE}/secrets"
 
 if [[ -s "${SECRETS_FILE}" ]]; then
@@ -574,64 +624,45 @@ LOGGING='    logging:
         max-size: "10m"
         max-file: "3"'
 
-{
-  echo "# Generated by install_pihole.sh. Re-running the installer overwrites this file."
-  echo "name: pihole"
-  echo "services:"
-
-  if [[ "${UPSTREAM_MODE}" == "doh" || "${UPSTREAM_MODE}" == "odoh" ]]; then
-    cat <<DNSCRYPT_SVC
-
-  dnscrypt-proxy:
-    image: klutchell/dnscrypt-proxy:latest
-    container_name: dnscrypt-proxy
+if [[ "${DNS_FILTER}" == "adguardhome" ]]; then
+  FILTER_SVC=$(cat <<AGH_SVC
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
     restart: unless-stopped
-    volumes:
-      - "${PIHOLE_BASE}/dnscrypt:/config"
+    depends_on:
+      unbound:
+        condition: service_healthy
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "${PIHOLE_HTTP_PORT}:80/tcp"
+      - "${PIHOLE_HTTPS_PORT}:443/tcp"
+      # First-run wizard (:3000) is finished by the installer over the Docker network.
     networks:
       dnsnet:
-        ipv4_address: ${IP_DNSCRYPT}
-    read_only: true
-    cap_drop: [ALL]
+        ipv4_address: ${IP_PIHOLE}
+    environment:
+      TZ: "${TZ}"
+    volumes:
+      - "${PIHOLE_BASE}/adguardhome/work:/opt/adguardhome/work"
+      - "${PIHOLE_BASE}/adguardhome/conf:/opt/adguardhome/conf"
+    cap_add:
+      - NET_ADMIN      # only needed for DHCP; harmless otherwise
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "/usr/local/bin/dnsprobe", "cloudflare.com", "127.0.0.1:5053"]
+      # :80 after setup, :3000 while the first-run wizard is waiting
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:80/login.html || wget -q -O /dev/null http://127.0.0.1:3000/install.html"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 30s
 ${LOGGING}
-DNSCRYPT_SVC
-    UNBOUND_DEPENDS='    depends_on:
-      dnscrypt-proxy:
-        condition: service_healthy'
-  else
-    UNBOUND_DEPENDS=""
-  fi
-
-  cat <<UNBOUND_SVC
-
-  unbound:
-    image: klutchell/unbound:latest
-    container_name: unbound
-    restart: unless-stopped
-${UNBOUND_DEPENDS}
-    volumes:
-      - "${PIHOLE_BASE}/unbound:/etc/unbound/custom.conf.d:ro"
-    networks:
-      dnsnet:
-        ipv4_address: ${IP_UNBOUND}
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test: ["CMD", "drill-hc", "cloudflare.com", "@127.0.0.1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-${LOGGING}
-
+AGH_SVC
+)
+else
+  FILTER_SVC=$(cat <<PIHOLE_SVC
   pihole:
     image: pihole/pihole:latest
     container_name: pihole
@@ -697,6 +728,69 @@ ${REV_SERVER_LINE}
       retries: 5
       start_period: 60s
 ${LOGGING}
+PIHOLE_SVC
+)
+fi
+
+{
+  echo "# Generated by install_pihole.sh. Re-running the installer overwrites this file."
+  echo "name: pihole"
+  echo "services:"
+
+  if [[ "${UPSTREAM_MODE}" == "doh" || "${UPSTREAM_MODE}" == "odoh" ]]; then
+    cat <<DNSCRYPT_SVC
+
+  dnscrypt-proxy:
+    image: klutchell/dnscrypt-proxy:latest
+    container_name: dnscrypt-proxy
+    restart: unless-stopped
+    volumes:
+      - "${PIHOLE_BASE}/dnscrypt:/config"
+    networks:
+      dnsnet:
+        ipv4_address: ${IP_DNSCRYPT}
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/dnsprobe", "cloudflare.com", "127.0.0.1:5053"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+${LOGGING}
+DNSCRYPT_SVC
+    UNBOUND_DEPENDS='    depends_on:
+      dnscrypt-proxy:
+        condition: service_healthy'
+  else
+    UNBOUND_DEPENDS=""
+  fi
+
+  cat <<UNBOUND_SVC
+
+  unbound:
+    image: klutchell/unbound:latest
+    container_name: unbound
+    restart: unless-stopped
+${UNBOUND_DEPENDS}
+    volumes:
+      - "${PIHOLE_BASE}/unbound:/etc/unbound/custom.conf.d:ro"
+    networks:
+      dnsnet:
+        ipv4_address: ${IP_UNBOUND}
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "drill-hc", "cloudflare.com", "@127.0.0.1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+${LOGGING}
+
+${FILTER_SVC}
 
 networks:
   dnsnet:
@@ -730,9 +824,14 @@ sed -i.bak '/^[[:space:]]*$/N;/^\n[[:space:]]*$/D' "${COMPOSE_FILE}" && rm -f "$
 cat > "${ENV_FILE}" <<ENVFILE
 # Generated by install_pihole.sh, read by pihole-maint.sh
 PIHOLE_BASE="${PIHOLE_BASE}"
+DNS_FILTER="${DNS_FILTER}"
+FILTER_IP="${IP_PIHOLE}"
+UNBOUND_IP="${IP_UNBOUND}"
+LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS}"
 MANAGED_LISTS="${IMPORT_LISTS}"
 MANAGED_REPO_RAW="${MANAGED_REPO_RAW}"
 BLOCK_DOH_BYPASS="${BLOCK_DOH_BYPASS}"
+SOCIAL_CLIENTS="${SOCIAL_CLIENTS}"
 AUTO_UPDATE_IMAGES="${AUTO_UPDATE_IMAGES}"
 ENABLE_WIREGUARD="${ENABLE_WIREGUARD}"
 WG_PORT="${WG_PORT}"
@@ -757,6 +856,7 @@ cat > "${MAINT}" <<'MAINT_SCRIPT'
 #   images    pull new images, redeploy, prune
 #   add-peer  NAME   create a WireGuard client config (+ QR code)
 #   status    container health and DNS self-test
+#   setup-agh finish AdGuard Home first-run setup + upstream (DNS_FILTER=adguardhome)
 set -euo pipefail
 BASE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 # shellcheck disable=SC1091
@@ -795,6 +895,7 @@ sync_lists() {
     echo "UPDATE adlist SET comment='${TAG}' WHERE comment='cgray managed blocklist';"
     echo "CREATE TEMP TABLE want_ad(address TEXT PRIMARY KEY);"
     echo "CREATE TEMP TABLE want_dom(type INTEGER, domain TEXT, enabled INTEGER, PRIMARY KEY(type, domain));"
+    echo "CREATE TEMP TABLE want_social(domain TEXT PRIMARY KEY);"
   } > "${sql}"
 
   # adlists (type 0 = blocklist)
@@ -818,14 +919,19 @@ sync_lists() {
   if raw=$(fetch allowlist_regexs_cg.txt); then regex_lines <<<"$raw" | add_dom 2 1
   else ok=false; warn "Could not fetch allowlist_regexs_cg.txt"; fi
 
-  # Social "unbreak" regexes are meant for selected clients only: added disabled.
-  if raw=$(fetch allow_regex_social_cg.txt); then regex_lines <<<"$raw" | add_dom 2 0
+  # Social "unbreak" regexes are meant for selected clients only: enabled, but
+  # assigned to the "Allow_Social" group instead of the Default group (see below).
+  if raw=$(fetch allow_regex_social_cg.txt); then
+    regex_lines <<<"$raw" | add_dom 2 1
+    while IFS= read -r d; do
+      [[ -n "$d" ]] && echo "INSERT OR IGNORE INTO want_social VALUES ('$(sqlq "$d")');" >> "${sql}"
+    done < <(regex_lines <<<"$raw")
   else ok=false; warn "Could not fetch allow_regex_social_cg.txt"; fi
 
   # Exact allowlist: "pihole -w a b c" lines plus bare domain lines
   if raw=$(fetch pihole_allowlist.sh); then
-    { tr -d '\r' <<<"$raw" | grep -E '^[[:space:]]*pihole[[:space:]]+(-w|allow)[[:space:]]' \
-        | sed -E 's/^[[:space:]]*pihole[[:space:]]+(-w|allow)[[:space:]]+//; s/#.*$//' | tr -s ' \t' '\n\n'
+    { tr -d '\r' <<<"$raw" | grep -E '^[[:space:]]*(pihole[[:space:]]+)?(-w|allow)[[:space:]]' \
+        | sed -E 's/^[[:space:]]*(pihole[[:space:]]+)?(-w|allow)[[:space:]]+//; s/#.*$//' | tr -s ' \t' '\n\n'
       clean <<<"$raw"; } | domains_only | sort -u | add_dom 0 1
   else ok=false; warn "Could not fetch pihole_allowlist.sh"; fi
 
@@ -840,7 +946,26 @@ sync_lists() {
   cat >> "${sql}" <<SQL
 INSERT OR IGNORE INTO adlist (address, enabled, comment) SELECT address, 1, '${TAG}' FROM want_ad;
 INSERT OR IGNORE INTO domainlist (type, domain, enabled, comment) SELECT type, domain, enabled, '${TAG}' FROM want_dom;
+UPDATE domainlist SET enabled = 1 WHERE comment = '${TAG}' AND type = 2 AND domain IN (SELECT domain FROM want_social);
+
+-- Social group: social regexes apply only to clients in "Allow_Social"
+INSERT OR IGNORE INTO "group" (enabled, name, description) VALUES (1, 'Allow_Social', 'managed_pihole: clients allowed to use social media');
+DELETE FROM domainlist_by_group WHERE group_id = 0
+  AND domainlist_id IN (SELECT id FROM domainlist WHERE type = 2 AND domain IN (SELECT domain FROM want_social));
+INSERT OR IGNORE INTO domainlist_by_group (domainlist_id, group_id)
+  SELECT d.id, g.id FROM domainlist d, "group" g
+  WHERE g.name = 'Allow_Social' AND d.type = 2 AND d.domain IN (SELECT domain FROM want_social);
 SQL
+  # Social clients: keep them in Default (so all block lists still apply) + Allow_Social
+  local c
+  for c in ${SOCIAL_CLIENTS:-}; do
+    cat >> "${sql}" <<SQL
+INSERT OR IGNORE INTO client (ip, comment) VALUES ('$(sqlq "$c")', '${TAG}');
+INSERT OR IGNORE INTO client_by_group (client_id, group_id) SELECT id, 0 FROM client WHERE ip = '$(sqlq "$c")';
+INSERT OR IGNORE INTO client_by_group (client_id, group_id)
+  SELECT c.id, g.id FROM client c, "group" g WHERE c.ip = '$(sqlq "$c")' AND g.name = 'Allow_Social';
+SQL
+  done
   # Prune entries removed upstream, but only when every source downloaded.
   if $ok; then
     cat >> "${sql}" <<SQL
@@ -856,9 +981,75 @@ SQL
   log "Applying managed lists to gravity.db..."
   docker exec -i pihole pihole-FTL sqlite3 /etc/pihole/gravity.db < "${sql}" || { rm -f "${sql}"; return 1; }
   rm -f "${sql}"
+  # Excluded domains (hidden from dashboard top lists / query log), v6 regex form:
+  #   example.com -> ^example\.com$     *.example.com -> (^|\.)example\.com$
+  local excl
+  if raw=$(fetch pihole_exclude_list.txt); then
+    excl=$(clean <<<"$raw" | python3 -I -c '
+import json, sys
+out = []
+for e in (l.strip().lower() for l in sys.stdin):
+    if not e:
+        continue
+    r = ("(^|\\.)" + e[2:].replace(".", "\\.") + "$") if e.startswith("*.") else ("^" + e.replace(".", "\\.") + "$")
+    if r not in out:
+        out.append(r)
+print(json.dumps(out))')
+    if docker exec pihole pihole-FTL --config webserver.api.excludeDomains "${excl}" >/dev/null; then
+      log "Excluded domains: $(python3 -I -c 'import json,sys; print(len(json.load(sys.stdin)))' <<<"${excl}") set (webserver.api.excludeDomains)."
+    else
+      warn "Could not set webserver.api.excludeDomains (is FTLCONF_webserver_api_excludeDomains set in the compose file?)"
+    fi
+  else warn "Could not fetch pihole_exclude_list.txt"; fi
+
   log "Managed: $(docker exec pihole pihole-FTL sqlite3 /etc/pihole/gravity.db \
     "SELECT (SELECT count(*) FROM adlist WHERE comment='${TAG}') || ' adlists, ' || \
             (SELECT count(*) FROM domainlist WHERE comment='${TAG}') || ' domain/regex entries';")"
+}
+
+# ---- AdGuard Home (DNS_FILTER=adguardhome) ----
+AGH_FILES="upsert_adguardhome.py pihole_api.py cgray_blocklists.txt blocklist_regexs_cg.txt
+allowlist_regexs_cg.txt allow_regex_social_cg.txt pihole_allowlist.sh doh_servers.txt pihole_exclude_list.txt"
+agh_pw() { cat "${PIHOLE_BASE}/secrets/pihole_password.txt"; }
+
+# Finish the first-run wizard (only if AdGuard Home has not been set up yet).
+agh_setup() {
+  local base="http://${FILTER_IP}" code
+  if [[ ! -s "${PIHOLE_BASE}/adguardhome/conf/AdGuardHome.yaml" ]]; then
+    log "Configuring AdGuard Home (first run)..."
+    for ((i = 0; i < 40; i++)); do curl -fsS -o /dev/null "${base}:3000/control/install/get_addresses" && break; sleep 3; done
+    python3 -I -c 'import json,sys; print(json.dumps({"web":{"ip":"0.0.0.0","port":80},"dns":{"ip":"0.0.0.0","port":53},"username":"admin","password":sys.stdin.read()}))' <<<"$(agh_pw)" \
+      | curl -fsS -H 'Content-Type: application/json' -X POST --data-binary @- "${base}:3000/control/install/configure" >/dev/null
+  fi
+  # Wait for the web API on :80 WITHOUT credentials (5 bad logins = 15 min lock-out)
+  for ((i = 0; i < 40; i++)); do
+    code=$(curl -s -o /dev/null -w '%{http_code}' "${base}/control/status" || true)
+    [[ "$code" == "401" || "$code" == "200" ]] && break; sleep 3
+  done
+  # Upstream = Unbound; Unbound validates DNSSEC. Retention = LOG_RETENTION_DAYS.
+  agh_api POST /control/dns_config "{\"upstream_dns\":[\"${UNBOUND_IP}:53\"],\"bootstrap_dns\":[\"${UNBOUND_IP}:53\"],\"dnssec_enabled\":false}"
+  local ms=$(( ${LOG_RETENTION_DAYS:-10} * 86400000 ))
+  for kind in querylog stats; do
+    agh_api GET "/control/${kind}/config" "" | python3 -I -c 'import json,sys; c=json.load(sys.stdin); c["interval"]=int(sys.argv[1]); print(json.dumps(c))' "$ms" \
+      | agh_api PUT "/control/${kind}/config/update" @-
+  done
+  log "AdGuard Home ready: upstream ${UNBOUND_IP}:53, retention ${LOG_RETENTION_DAYS:-10} days."
+}
+agh_api() { # METHOD PATH DATA  (DATA "@-" = stdin)
+  curl -fsS -u "admin:$(agh_pw)" -H 'Content-Type: application/json' -X "$1" \
+    ${3:+--data-binary "$3"} "http://${FILTER_IP}$2"
+}
+
+sync_lists_agh() {
+  is_true "${MANAGED_LISTS}" || { log "Managed lists disabled; skipping sync."; return 0; }
+  local dir="${PIHOLE_BASE}/managed" f extra=""
+  mkdir -p "$dir"
+  for f in ${AGH_FILES}; do fetch "$f" > "$dir/$f.tmp" && mv "$dir/$f.tmp" "$dir/$f" || warn "Could not fetch $f (keeping old copy)"; done
+  is_true "${BLOCK_DOH_BYPASS}" && extra="--block-doh"
+  local social="${SOCIAL_CLIENTS:-}"; social="${social// /|}"
+  log "Applying managed lists to AdGuard Home (and refreshing filters)..."
+  ADGUARD_URL="http://${FILTER_IP}" ADGUARD_USER=admin ADGUARD_PASSWORD="$(agh_pw)" \
+    python3 "$dir/upsert_adguardhome.py" --dir "$dir" ${extra} ${social:+--social-clients "$social"}
 }
 
 gravity() {
@@ -982,15 +1173,23 @@ status() {
   echo -n "Blocking (doubleclick.net)    : "; dig +short +time=3 @127.0.0.1 doubleclick.net A | head -1
 }
 
+if [[ "${DNS_FILTER:-pihole}" == "adguardhome" ]]; then
+  # Same commands, AdGuard Home versions. Lists are refreshed by upsert_adguardhome.py.
+  sync_lists() { sync_lists_agh; }
+  gravity() { :; }
+  renew_pihole_tls() { :; }
+fi
+
 case "${1:-}" in
   daily)    sync_lists; gravity ;;
   weekly)   refresh_cas; renew_pihole_tls; update_images ;;
   lists)    sync_lists; gravity ;;
+  setup-agh) agh_setup ;;
   certs)    refresh_cas; renew_pihole_tls ;;
   images)   update_images ;;
   add-peer) add_peer "${2:?usage: $0 add-peer NAME}" ;;
   status)   status ;;
-  *) echo "usage: $0 {daily|weekly|lists|certs|images|add-peer NAME|status}" >&2; exit 2 ;;
+  *) echo "usage: $0 {daily|weekly|lists|certs|images|add-peer NAME|status|setup-agh}" >&2; exit 2 ;;
 esac
 MAINT_SCRIPT
 chmod 700 "${MAINT}"
@@ -1144,12 +1343,12 @@ docker compose pull -q
 docker compose down --remove-orphans >/dev/null 2>&1 || true
 # Containers from an older install (different compose project); data lives in
 # bind mounts, so removing the containers is safe.
-docker rm -f cloudflared pihole unbound dnscrypt-proxy >/dev/null 2>&1 || true
+docker rm -f cloudflared pihole adguardhome unbound dnscrypt-proxy >/dev/null 2>&1 || true
 docker compose up -d --remove-orphans
 
 wait_all() {
   local c s
-  for c in $( [[ "${UPSTREAM_MODE}" == doh || "${UPSTREAM_MODE}" == odoh ]] && echo dnscrypt-proxy ) unbound pihole; do
+  for c in $( [[ "${UPSTREAM_MODE}" == doh || "${UPSTREAM_MODE}" == odoh ]] && echo dnscrypt-proxy ) unbound "${DNS_FILTER}"; do
     printf '  waiting for %-15s' "$c"
     for ((i = 0; i < 60; i++)); do
       s=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$c" 2>/dev/null || echo missing)
@@ -1160,6 +1359,7 @@ wait_all() {
   done
 }
 wait_all
+[[ "${DNS_FILTER}" == "adguardhome" ]] && "${MAINT}" setup-agh
 
 if is_true "${IMPORT_LISTS}"; then
   section "Managed lists"
@@ -1225,14 +1425,16 @@ section "Self-test"
 HOST_IP=$(host_ip)
 section "Pi-hole setup complete"
 cat <<SUMMARY
-  Admin UI       : http://${HOST_IP}:${PIHOLE_HTTP_PORT}/admin   (https on :${PIHOLE_HTTPS_PORT})
+  DNS filter     : ${DNS_FILTER}
+  Admin UI       : http://${HOST_IP}:${PIHOLE_HTTP_PORT}$( [[ "${DNS_FILTER}" == pihole ]] && echo /admin || echo "/  (user: admin)" )   (https on :${PIHOLE_HTTPS_PORT})
   Password       : $( [[ "${NEW_PASSWORD:-false}" == true ]] && echo "${PIHOLE_PASSWORD}" || echo "(unchanged)" )  -> ${SECRETS_FILE}
 
-  DNS path       : Pi-hole -> Unbound (DNSSEC, cache) -> ${UPSTREAM_MODE^^}
+  DNS path       : ${DNS_FILTER} -> Unbound (DNSSEC, cache) -> ${UPSTREAM_MODE^^}
   Upstreams      : ${UPSTREAM_DESC}
   IPv6 upstream  : ${ENABLE_IPV6}
   Retention      : ${LOG_RETENTION_DAYS} days (query DB + rotated logs; container logs capped at 30 MB)
   Managed lists  : ${IMPORT_LISTS} (daily sync from github.com/c2theg/managed_pihole)
+  Social clients : ${SOCIAL_CLIENTS:-none} (group Allow_Social; others keep social sites blocked)
   Maintenance    : ${MAINT} {daily|weekly|lists|certs|images|add-peer|status}
 SUMMARY
 if is_true "${ENABLE_WIREGUARD}"; then
