@@ -1,9 +1,15 @@
 #!/bin/bash
-#  By: Christpher Gray | Version 6.3.0 | Updated: 11/5/2026
+#  By: Christpher Gray | Version 6.4.0 | Updated: 11/5/2026
 #  Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #  Install:  wget https://raw.githubusercontent.com/c2theg/srvBuilds/refs/heads/master/install_pihole.sh && chmod u+x install_pihole.sh
 #
 #  ChangeLog:
+#    6.4.0  11/5/2026  (Claude Code) NEW: MCP server for AI agents (ENABLE_MCP, default true).
+#                      Installs mcp_server.py to ${PIHOLE_BASE}/mcp, creates a locked system
+#                      user "dnsmcp" that can only run it (SSH forced command), a Pi-hole app
+#                      password for it, and a sudo rule for exactly two read-only
+#                      unbound-control commands. Agents connect with: ssh dnsmcp@<host>
+#                      New maintenance commands: mcp, mcp-add-key KEY|FILE.
 #    6.3.0  11/5/2026  (Claude Code) Unbound: extended-statistics and unbound-control on
 #                      127.0.0.1 inside the container (not published), so mcp_server.py can
 #                      read stats with `docker exec unbound unbound-control stats_noreset`.
@@ -94,6 +100,10 @@
 #   WG_PORT                (default: 47111)   WG_PEERS (default: "client1")
 #   WG_TUNNEL              full | dns  (all traffic through VPN, or DNS only) (default: full)
 #   PIHOLE_HTTP_PORT / PIHOLE_HTTPS_PORT (default: 80 / 443)
+#   ENABLE_MCP             read-only MCP server for AI agents, over SSH (default: true)
+#   MCP_USER               system user the agent logs in as  (default: dnsmcp)
+#   MCP_SSH_KEYS           public key(s) allowed to start it  (default: the sudo user's
+#                          authorized_keys; later: pihole-maint.sh mcp-add-key KEY|FILE)
 #   TZ                     (default: America/New_York)
 #
 # References
@@ -130,6 +140,10 @@ BLOCK_DOH_BYPASS="${BLOCK_DOH_BYPASS:-true}"
 LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS:-10}"
 AUTO_UPDATE_IMAGES="${AUTO_UPDATE_IMAGES:-true}"
 MANAGED_REPO_RAW="${MANAGED_REPO_RAW:-https://raw.githubusercontent.com/c2theg/managed_pihole/refs/heads/main}"
+ENABLE_MCP="${ENABLE_MCP:-true}"
+MCP_USER="${MCP_USER:-dnsmcp}"
+MCP_SSH_KEYS="${MCP_SSH_KEYS:-}"
+[[ "${MCP_USER}" =~ ^[a-z_][a-z0-9_-]{0,30}$ ]] || { echo "MCP_USER must be a valid user name." >&2; exit 1; }
 
 CONDITIONAL_FORWARDING="${CONDITIONAL_FORWARDING:-false}"
 LAN_CIDR="${LAN_CIDR:-}"
@@ -843,6 +857,8 @@ UNBOUND_IP="${IP_UNBOUND}"
 LOG_RETENTION_DAYS="${LOG_RETENTION_DAYS}"
 MANAGED_LISTS="${IMPORT_LISTS}"
 MANAGED_REPO_RAW="${MANAGED_REPO_RAW}"
+ENABLE_MCP="${ENABLE_MCP}"
+MCP_USER="${MCP_USER}"
 BLOCK_DOH_BYPASS="${BLOCK_DOH_BYPASS}"
 SOCIAL_CLIENTS="${SOCIAL_CLIENTS}"
 AUTO_UPDATE_IMAGES="${AUTO_UPDATE_IMAGES}"
@@ -870,6 +886,8 @@ cat > "${MAINT}" <<'MAINT_SCRIPT'
 #   add-peer  NAME   create a WireGuard client config (+ QR code)
 #   status    container health and DNS self-test
 #   setup-agh finish AdGuard Home first-run setup + upstream (DNS_FILTER=adguardhome)
+#   mcp       install/refresh the read-only MCP server for AI agents (ENABLE_MCP)
+#   mcp-add-key KEY|FILE  allow an SSH public key to start the MCP server (and nothing else)
 set -euo pipefail
 BASE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 # shellcheck disable=SC1091
@@ -1065,6 +1083,139 @@ sync_lists_agh() {
     python3 "$dir/upsert_adguardhome.py" --dir "$dir" ${extra} ${social:+--social-clients "$social"}
 }
 
+# ---- MCP server for AI agents (read-only stats, started over SSH) ----
+MCP_FILES="mcp_server.py pihole_api.py upsert_adguardhome.py"
+MCP_DIR="${PIHOLE_BASE}/mcp"
+MCP_USER="${MCP_USER:-dnsmcp}"
+
+mcp_fetch() { # newest files from the repo; keeps the current copy if a download fails
+  local f
+  mkdir -p "${MCP_DIR}"; chmod 755 "${MCP_DIR}"
+  for f in ${MCP_FILES}; do
+    if fetch "$f" > "${MCP_DIR}/$f.tmp" 2>/dev/null; then mv "${MCP_DIR}/$f.tmp" "${MCP_DIR}/$f"
+    else rm -f "${MCP_DIR}/$f.tmp"; [[ -s "${MCP_DIR}/$f" ]] || { warn "Could not fetch $f"; return 1; }; fi
+  done
+  chown root:root "${MCP_DIR}"/*.py; chmod 755 "${MCP_DIR}"/*.py
+}
+
+# Prints an app password for the MCP user: the current one if it still works, else a new
+# one (Pi-hole keeps ONE app password, webserver.api.app_pwhash). App-password sessions
+# cannot change Pi-hole settings (webserver.api.app_sudo = false).
+mcp_pihole_app_pw() {
+  python3 -I - "http://${FILTER_IP}/api" "${PIHOLE_BASE}/secrets/pihole_password.txt" "${MCP_DIR}/managed_pihole.conf" <<'PY'
+import json, sys, urllib.request
+api, pwfile, conf = sys.argv[1:4]
+def call(method, path, body=None, sid=None):
+    hdr = {"Content-Type": "application/json"}
+    if sid: hdr["X-FTL-SID"] = sid
+    data = json.dumps(body).encode() if body is not None else None
+    with urllib.request.urlopen(urllib.request.Request(api + path, data, hdr, method=method), timeout=30) as r:
+        raw = r.read()
+    return json.loads(raw) if raw.strip() else {}
+why = []
+def login(pw):
+    try:
+        s = call("POST", "/auth", {"password": pw}).get("session", {})
+    except Exception as e:
+        why.append(str(e))
+        return None
+    why.append(s.get("message") or "")
+    return s.get("sid") if s.get("valid") else None
+old = None
+try:
+    for line in open(conf):
+        if line.startswith("PIHOLE_PASSWORD="):
+            old = line.split("=", 1)[1].strip().strip("'\"")
+except OSError:
+    pass
+if old:
+    sid = login(old)
+    if sid:
+        call("DELETE", "/auth", sid=sid)
+        print(old)
+        sys.exit(0)
+sid = login(open(pwfile).read().strip())
+if not sid:
+    sys.exit("Pi-hole login failed: %s (all %s API seats in use? see webserver.api.max_sessions)"
+             % (why[-1] if why else "?", "16"))
+app = call("GET", "/auth/app", sid=sid)["app"]
+call("PATCH", "/config", {"config": {"webserver": {"api": {"app_pwhash": app["hash"]}}}}, sid=sid)
+# Changing a password ends every session (this one too), so no logout is needed.
+sid = login(app["password"])
+if not sid:
+    sys.exit("Pi-hole did not accept the new app password")
+call("DELETE", "/auth", sid=sid)
+print(app["password"])
+PY
+}
+
+mcp_add_key() { # KEY lines or a .pub / authorized_keys FILE
+  local src="$1" home ak key n=0
+  [[ -r "$src" ]] && src=$(cat "$src")
+  home=$(getent passwd "${MCP_USER}" | cut -d: -f6)
+  [[ -n "$home" ]] || { warn "User ${MCP_USER} does not exist; run: $0 mcp"; return 1; }
+  ak="$home/.ssh/authorized_keys"
+  install -d -m 700 -o "${MCP_USER}" -g "${MCP_USER}" "$home/.ssh"
+  touch "$ak"
+  while IFS= read -r key; do
+    key=$(sed -E 's/^[[:space:]]+//' <<<"$key")
+    # only plain key lines; lines that already carry options (from=, command= ...) are skipped
+    [[ "$key" =~ ^(ssh-(ed25519|rsa|dss)|ecdsa-sha2-[a-z0-9]+|sk-[a-z0-9@.-]+)[[:space:]]+[A-Za-z0-9+/=]+ ]] || continue
+    key=$(awk '{print $1" "$2" "$3}' <<<"$key" | sed -E 's/ +$//')
+    grep -qF "$(awk '{print $2}' <<<"$key")" "$ak" && continue
+    # forced command + restrict: this key can only start the MCP server (no shell,
+    # no port forwarding, no pty), whatever the client asks for
+    echo "command=\"${MCP_DIR}/mcp_server.py\",restrict ${key}" >> "$ak"
+    n=$((n + 1))
+  done <<<"$src"
+  chown "${MCP_USER}:${MCP_USER}" "$ak"; chmod 600 "$ak"
+  log "MCP: ${n} key(s) added, $(grep -c '^command=' "$ak" || true) total (${ak})."
+}
+
+mcp_setup() {
+  is_true "${ENABLE_MCP:-false}" || { log "ENABLE_MCP is off; skipping."; return 0; }
+  mcp_fetch || { warn "MCP server files are missing; skipping MCP setup."; return 1; }
+  if ! id -u "${MCP_USER}" >/dev/null 2>&1; then
+    # no password (locked): the only way in is an SSH key with the forced command
+    useradd --system --create-home --home-dir "/var/lib/${MCP_USER}" --shell /bin/bash \
+            --comment "managed_pihole MCP server (read-only DNS stats)" "${MCP_USER}"
+  fi
+  local conf="${MCP_DIR}/managed_pihole.conf" docker_bin services creds pw
+  docker_bin=$(command -v docker)
+  if [[ "${DNS_FILTER:-pihole}" == "adguardhome" ]]; then
+    # AdGuard Home has no read-only accounts; the admin login is used.
+    services="adguardhome,unbound"
+    creds="ADGUARD_URL=http://${FILTER_IP}
+ADGUARD_USER=admin
+ADGUARD_PASSWORD='$(agh_pw)'"
+  else
+    services="pihole,unbound"
+    pw=$(mcp_pihole_app_pw) || { warn "Could not create a Pi-hole app password for MCP."; return 1; }
+    creds="PIHOLE_API_URL=http://${FILTER_IP}/api
+PIHOLE_PASSWORD='${pw}'"
+  fi
+  install -m 640 -o root -g "${MCP_USER}" /dev/null "${conf}.tmp"   # never world-readable
+  cat > "${conf}.tmp" <<CONF
+# Generated by pihole-maint.sh mcp - read by ${MCP_DIR}/mcp_server.py as user ${MCP_USER}
+MCP_SERVICES=${services}
+${creds}
+UNBOUND_CONTROL=sudo -n ${docker_bin} exec unbound unbound-control
+CONF
+  mv "${conf}.tmp" "${conf}"
+  # sudo for exactly these two read-only commands, nothing else
+  local rule="/etc/sudoers.d/${MCP_USER}"
+  printf '# managed_pihole MCP server: read-only Unbound stats\n%s ALL=(root) NOPASSWD: %s exec unbound unbound-control stats_noreset, %s exec unbound unbound-control status\n' \
+    "${MCP_USER}" "${docker_bin}" "${docker_bin}" > "${rule}.tmp"
+  chmod 440 "${rule}.tmp"
+  if visudo -cqf "${rule}.tmp"; then mv "${rule}.tmp" "${rule}"; else rm -f "${rule}.tmp"; warn "sudo rule invalid; Unbound stats disabled."; fi
+  [[ -n "${MCP_SSH_KEYS:-}" ]] && mcp_add_key "${MCP_SSH_KEYS}"
+  if runuser -u "${MCP_USER}" -- "${MCP_DIR}/mcp_server.py" --test 2>&1 | grep -q 'queries"'; then
+    log "MCP server OK: ${MCP_DIR}/mcp_server.py (${services}) as user ${MCP_USER}."
+  else
+    warn "MCP self-test did not return stats. Check: sudo runuser -u ${MCP_USER} -- ${MCP_DIR}/mcp_server.py --test"
+  fi
+}
+
 gravity() {
   log "Running gravity update (downloads all adlists)..."
   docker exec pihole pihole -g 2>&1 | grep --line-buffered -E '\[(i|✓|✗)\]|Number of|Error' || true
@@ -1194,15 +1345,17 @@ if [[ "${DNS_FILTER:-pihole}" == "adguardhome" ]]; then
 fi
 
 case "${1:-}" in
-  daily)    sync_lists; gravity ;;
+  daily)    sync_lists; gravity; if is_true "${ENABLE_MCP:-false}"; then mcp_fetch || true; fi ;;
   weekly)   refresh_cas; renew_pihole_tls; update_images ;;
   lists)    sync_lists; gravity ;;
   setup-agh) agh_setup ;;
+  mcp)      mcp_setup ;;
+  mcp-add-key) mcp_add_key "${2:?usage: $0 mcp-add-key 'ssh-ed25519 AAAA... name' | FILE}" ;;
   certs)    refresh_cas; renew_pihole_tls ;;
   images)   update_images ;;
   add-peer) add_peer "${2:?usage: $0 add-peer NAME}" ;;
   status)   status ;;
-  *) echo "usage: $0 {daily|weekly|lists|certs|images|add-peer NAME|status|setup-agh}" >&2; exit 2 ;;
+  *) echo "usage: $0 {daily|weekly|lists|certs|images|add-peer NAME|status|setup-agh|mcp|mcp-add-key KEY}" >&2; exit 2 ;;
 esac
 MAINT_SCRIPT
 chmod 700 "${MAINT}"
@@ -1379,6 +1532,22 @@ if is_true "${IMPORT_LISTS}"; then
   "${MAINT}" lists
 fi
 
+if is_true "${ENABLE_MCP}"; then
+  section "MCP server (read-only stats for AI agents)"
+  mkdir -p "${PIHOLE_BASE}/mcp"
+  # Run from a repo checkout? Seed with the local copies (the repo copy wins later if newer).
+  _src="$(dirname "$(readlink -f "$0")")"
+  for _f in mcp_server.py pihole_api.py upsert_adguardhome.py; do
+    [[ -f "${_src}/${_f}" ]] && install -m 755 "${_src}/${_f}" "${PIHOLE_BASE}/mcp/${_f}"
+  done
+  # Default keys: the ones that can already log in as the sudo user (no new access).
+  if [[ -z "${MCP_SSH_KEYS}" && -n "${SUDO_USER:-}" ]]; then
+    _ak="$(getent passwd "${SUDO_USER}" | cut -d: -f6)/.ssh/authorized_keys"
+    [[ -r "${_ak}" ]] && MCP_SSH_KEYS="${_ak}"
+  fi
+  MCP_SSH_KEYS="${MCP_SSH_KEYS}" "${MAINT}" mcp || warn "MCP setup reported a problem; DNS is unaffected."
+fi
+
 # =============================================================
 # Scheduled maintenance (systemd timers)
 # =============================================================
@@ -1448,8 +1617,15 @@ cat <<SUMMARY
   Retention      : ${LOG_RETENTION_DAYS} days (query DB + rotated logs; container logs capped at 30 MB)
   Managed lists  : ${IMPORT_LISTS} (daily sync from github.com/c2theg/managed_pihole)
   Social clients : ${SOCIAL_CLIENTS:-none} (group Allow_Social; others keep social sites blocked)
-  Maintenance    : ${MAINT} {daily|weekly|lists|certs|images|add-peer|status}
+  Maintenance    : ${MAINT} {daily|weekly|lists|certs|images|add-peer|status|mcp|mcp-add-key}
 SUMMARY
+if is_true "${ENABLE_MCP}"; then
+  cat <<MCPSUM
+  MCP (AI agent) : claude mcp add dns -- ssh ${MCP_USER}@${HOST_IP}
+                   (the key can only start ${PIHOLE_BASE}/mcp/mcp_server.py; read-only)
+                   Add a key: sudo ${MAINT} mcp-add-key ~/.ssh/id_ed25519.pub
+MCPSUM
+fi
 if is_true "${ENABLE_WIREGUARD}"; then
   cat <<WGSUM
   WireGuard      : ${WG_ENDPOINT}:${WG_PORT}/udp  (${WG_TUNNEL} tunnel, DNS ${WG_NET4}.1)

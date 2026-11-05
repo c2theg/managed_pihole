@@ -11,6 +11,12 @@ Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)*
   - Pi-hole long-term stats via `hours`.
   - Reuses `pihole_api.py` and the `upsert_adguardhome.py` client. Logs out of Pi-hole on exit (including SIGTERM), so no API sessions leak.
   - Tested against Pi-hole v6 (core 6.5 / FTL 6.8), AdGuard Home v0.107.80 and Unbound 1.26.2 (klutchell/unbound image and Debian package).
+- **`install_pihole.sh` 6.3.0 → 6.4.0**: sets up the MCP server automatically (`ENABLE_MCP=true` by default).
+  - Creates a locked system user `dnsmcp`. Its SSH keys can only start `mcp_server.py` (forced command plus `restrict`).
+  - Pi-hole gets its own app password, which cannot change settings. Re-runs keep it.
+  - Sudo rule for exactly `docker exec unbound unbound-control stats_noreset` / `status`.
+  - New `pihole-maint.sh mcp` and `mcp-add-key KEY|FILE`. The daily job refreshes the MCP files.
+  - Tested end to end on Ubuntu 24.04 with a live Pi-hole: an SSH forced-command session returned stats, and a requested shell command was ignored. `dnsmcp` cannot read secrets or run other sudo commands. The app password gets HTTP 403 on config changes. No API sessions leak across re-runs.
 - **`setup_unbound.sh` 1.0.0 → 1.1.0**: `extended-statistics: yes`. `unbound-control` on `/run/unbound.ctl` unless remote-control is already enabled; Debian's package already does it.
 - **`install_pihole.sh` 6.2.0 → 6.3.0**: Unbound container gets `extended-statistics` and `unbound-control` on 127.0.0.1 inside the container. No port is published.
 - **`pihole_api.py`**: `load_settings()` also reads `UNBOUND_CONTROL`, `UNBOUND_CONTAINER`, `MCP_SERVICES`.

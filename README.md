@@ -26,7 +26,7 @@ Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuar
 | `upsert_adguardhome.py` | 1.0.0 | *New.* Applies the same lists to **AdGuard Home** through its API (native or Docker) |
 | `setup_unbound.sh` | 1.1.0 | *New.* Native **Unbound** on 127.0.0.1:5335 (Pi-hole guide), then points Pi-hole or AdGuard Home at it |
 | `mcp_server.py` | 1.0.0 | *New.* Read-only **MCP server**: AI agents can read Pi-hole / AdGuard Home / Unbound stats ([below](#ai-agent-access-mcp-server)) |
-| `install_pihole.sh` | 6.3.0 | Docker stack installer: Pi-hole **or** AdGuard Home → Unbound → dnscrypt-proxy (+ WireGuard), with daily list sync |
+| `install_pihole.sh` | 6.4.0 | Docker stack installer: Pi-hole **or** AdGuard Home → Unbound → dnscrypt-proxy (+ WireGuard), with daily list sync |
 | `cgray_blocklists.txt` | 0.6.1 | Subscribed block-list URLs: all Firebog "ticked" lists plus every list in this repo |
 | `blocklist_regexs_cg.txt` | 0.1.0 | Regex deny |
 | `allowlist_regexs_cg.txt` | 0.1.0 | Regex allow (everyone) |
@@ -84,7 +84,20 @@ docker compose up -d
 
 ### Option C: Docker stack with Unbound (Pi-hole or AdGuard Home)
 
-`install_pihole.sh` (Ubuntu) builds the whole stack in `/opt/pihole`: filter → Unbound (DNSSEC, cache) → dnscrypt-proxy (DoH/ODoH), optional WireGuard, plus systemd timers for the daily list sync and weekly updates.
+`install_pihole.sh` (Ubuntu 22.04 / 24.04 / 26.04) builds the whole stack in `/opt/pihole`. It also installs Docker if needed. The stack is:
+- filter → Unbound (DNSSEC, cache) → dnscrypt-proxy (DoH/ODoH)
+- optional WireGuard
+- the read-only MCP server for AI agents
+- systemd timers for the daily list sync and weekly updates
+
+**Quick start on a fresh Ubuntu VM** (no prompts):
+
+```sh
+git clone https://github.com/c2theg/managed_pihole.git && cd managed_pihole
+sudo DNS_FILTER=pihole UPSTREAM_MODE=doh ENABLE_WIREGUARD=false bash install_pihole.sh
+```
+
+It prints the admin URL, the password and the `claude mcp add …` line at the end. More options:
 
 ```sh
 sudo bash install_pihole.sh                              # asks: Pi-hole or AdGuard Home
@@ -223,7 +236,18 @@ On Docker, prefix commands with `docker exec pihole`, e.g. `docker exec pihole p
 
 Pi-hole tools take an optional `hours` argument. With it they use Pi-hole's long-term database instead of the live last-24-hour counters.
 
-### Set up on the DNS host
+### Docker stack (`install_pihole.sh`): already done
+
+`install_pihole.sh` 6.4.0+ sets all of this up for you (`ENABLE_MCP=false` to skip):
+- **Server**: `mcp_server.py` in `/opt/pihole/mcp`. Its settings file can be read only by root and `dnsmcp`.
+- **User**: a locked system user `dnsmcp`. Its SSH keys are **forced** to run only `mcp_server.py` (`restrict`: no shell, no forwarding).
+- **Pi-hole app password**: app-password sessions cannot change Pi-hole settings. They can still read data and manage lists through the API. AdGuard Home has no read-only accounts, so it uses the admin login.
+- **Sudo rule**: covers exactly `docker exec unbound unbound-control stats_noreset` and `status`.
+- **SSH keys**: by default, the keys that can already log in as the user who ran `sudo`. Add others with `sudo /opt/pihole/pihole-maint.sh mcp-add-key ~/.ssh/id_ed25519.pub`.
+
+Connect with `claude mcp add dns -- ssh dnsmcp@<vm-ip>`.
+
+### Set up on the DNS host (native installs)
 
 1. Put `mcp_server.py` next to `pihole_api.py` and `upsert_adguardhome.py`. `update_lists.sh` downloads it.
 2. Credentials go in `/etc/managed_pihole.conf` (`chmod 600`):
