@@ -3,6 +3,20 @@
 All notable changes to managed_pihole. Each file also carries its own version and
 changelog in its header. Dates are M/D/YYYY.
 
+## 1.3.0 (11/5/2026): MCP server for AI agents
+Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
+
+- **New `mcp_server.py` 1.0.0**: a read-only MCP server (stdio, Python standard library only) with 17 tools for Pi-hole v6, AdGuard Home and Unbound metrics.
+  - Covers summary, top domains/clients/upstreams, history, query log, "why is this blocked", system info and lists.
+  - Pi-hole long-term stats via `hours`.
+  - Reuses `pihole_api.py` and the `upsert_adguardhome.py` client. Logs out of Pi-hole on exit (including SIGTERM), so no API sessions leak.
+  - Tested against Pi-hole v6 (core 6.5 / FTL 6.8), AdGuard Home v0.107.80 and Unbound 1.26.2 (klutchell/unbound image and Debian package).
+- **`setup_unbound.sh` 1.0.0 → 1.1.0**: `extended-statistics: yes`. `unbound-control` on `/run/unbound.ctl` unless remote-control is already enabled; Debian's package already does it.
+- **`install_pihole.sh` 6.2.0 → 6.3.0**: Unbound container gets `extended-statistics` and `unbound-control` on 127.0.0.1 inside the container. No port is published.
+- **`pihole_api.py`**: `load_settings()` also reads `UNBOUND_CONTROL`, `UNBOUND_CONTAINER`, `MCP_SERVICES`.
+- **`update_lists.sh`**: also downloads `mcp_server.py`.
+- **`managed_pihole.conf.example` 1.3.0**: MCP settings.
+
 ## 1.2.0 (11/5/2026): import everything automatically + repo housekeeping
 Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
 

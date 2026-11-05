@@ -6,7 +6,7 @@
 #
 #  pihole_api.py  -  tiny Pi-hole v6 REST API client (Python standard library only)
 #
-#  Version:       1.0.0
+#  Version:       1.0.1
 #  Last Updated:  11/5/2026
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #
@@ -36,6 +36,8 @@
 #    https://github.com/pi-hole/FTL/tree/master/src/api/docs/content/specs
 #
 #  ChangeLog:
+#    1.0.1  11/5/2026  load_settings() also reads UNBOUND_CONTROL, UNBOUND_CONTAINER and
+#                      MCP_SERVICES (used by mcp_server.py).
 #    1.0.0  11/5/2026  New file (Claude Code). Shared API client used by
 #                      upsert_lists.py and backup_dbs.py. load_settings() and
 #                      read_list_file() are also used by upsert_adguardhome.py.
@@ -50,7 +52,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILES = ["/etc/managed_pihole.conf", os.path.join(SCRIPT_DIR, "managed_pihole.conf")]
@@ -80,7 +82,7 @@ def load_settings():
             pass
     for key in ("PIHOLE_API_URL", "PIHOLE_PASSWORD", "PIHOLE_DIR", "PIHOLE_MODE", "PIHOLE_CONTAINER",
                 "DNS_FILTER", "ADGUARD_URL", "ADGUARD_USER", "ADGUARD_PASSWORD", "ADGUARD_SOCIAL_CLIENTS",
-                "UNBOUND_UPSTREAM"):
+                "UNBOUND_UPSTREAM", "UNBOUND_CONTROL", "UNBOUND_CONTAINER", "MCP_SERVICES"):
         if os.environ.get(key):
             settings[key] = os.environ[key]
     settings.setdefault("PIHOLE_MODE", "auto")

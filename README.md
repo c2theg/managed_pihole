@@ -2,7 +2,7 @@
 
 Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuard Home**, with **Unbound** as the recursive, DNSSEC-validating upstream. Each one works on a **native OS install** or in **Docker**.
 
-- **Version:** 1.2.0
+- **Version:** 1.3.0
 - **Last updated:** 11/5/2026
 - **Updated by:** Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)
 - **Pi-hole docs:** https://docs.pi-hole.net/main/post-install/
@@ -15,17 +15,18 @@ Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuar
 
 | File | Version | What it does |
 |---|---|---|
-| `update_lists.sh` | 1.0.0 | Main job: OS update → backup → download latest files → update Pi-hole → allow list → block lists + gravity |
+| `update_lists.sh` | 1.0.1 | Main job: OS update → backup → download latest files → update Pi-hole → allow list → block lists + gravity |
 | `upsert_lists.py` | 1.0.0 | Adds block lists, regex allow/deny, excluded domains through the v6 API, then runs gravity |
 | `pihole_allowlist.sh` | 1.0.0 | Exact **allow** domains (`pihole allow …`) |
 | `backup_dbs.py` | 1.0.0 | Teleporter backup (.zip) + gzip'd copies of `gravity.db` / `pihole-FTL.db` |
 | `export_custom_lists.sh` | 1.0.0 | Exports your custom domains and subscribed lists to text files |
 | `cleanup.sh` | 1.0.0 | Deletes rotated logs, flushes the query log |
 | `pihole_common.sh` | 1.0.0 | *New.* Shared shell helpers: detects native vs Docker |
-| `pihole_api.py` | 1.0.0 | *New.* Small Pi-hole v6 REST API client (Python standard library only) |
+| `pihole_api.py` | 1.0.1 | *New.* Small Pi-hole v6 REST API client (Python standard library only) |
 | `upsert_adguardhome.py` | 1.0.0 | *New.* Applies the same lists to **AdGuard Home** through its API (native or Docker) |
-| `setup_unbound.sh` | 1.0.0 | *New.* Native **Unbound** on 127.0.0.1:5335 (Pi-hole guide), then points Pi-hole or AdGuard Home at it |
-| `install_pihole.sh` | 6.2.0 | Docker stack installer: Pi-hole **or** AdGuard Home → Unbound → dnscrypt-proxy (+ WireGuard), with daily list sync |
+| `setup_unbound.sh` | 1.1.0 | *New.* Native **Unbound** on 127.0.0.1:5335 (Pi-hole guide), then points Pi-hole or AdGuard Home at it |
+| `mcp_server.py` | 1.0.0 | *New.* Read-only **MCP server**: AI agents can read Pi-hole / AdGuard Home / Unbound stats ([below](#ai-agent-access-mcp-server)) |
+| `install_pihole.sh` | 6.3.0 | Docker stack installer: Pi-hole **or** AdGuard Home → Unbound → dnscrypt-proxy (+ WireGuard), with daily list sync |
 | `cgray_blocklists.txt` | 0.6.1 | Subscribed block-list URLs: all Firebog "ticked" lists plus every list in this repo |
 | `blocklist_regexs_cg.txt` | 0.1.0 | Regex deny |
 | `allowlist_regexs_cg.txt` | 0.1.0 | Regex allow (everyone) |
@@ -34,7 +35,7 @@ Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuar
 | `cgray_chat.txt`, `cgray_games.txt`, `cgray_social.txt`, `cgray_religion_school.txt` | — | Personal block lists, subscribed by raw GitHub URL |
 | `url_general_blocklist.txt`, `toolz_adblock_test.txt` | 0.1.0 | Extra block lists (subscribed via `cgray_blocklists.txt`) |
 | `doh_servers.txt` | 0.1.0 | Public DoH servers (blocked by `install_pihole.sh` / `--block-doh`) |
-| `managed_pihole.conf.example` | 1.2.0 | Settings template, copy to `/etc/managed_pihole.conf` |
+| `managed_pihole.conf.example` | 1.3.0 | Settings template, copy to `/etc/managed_pihole.conf` |
 
 Every script and list file has a header with its version, date, the AI agent that updated it, and a changelog.
 
@@ -200,6 +201,76 @@ sudo /opt/managed_pihole/cleanup.sh
 | `/var/log/pihole.log`, `/var/log/pihole-FTL.log` | `/var/log/pihole/pihole.log`, `/var/log/pihole/FTL.log` |
 
 On Docker, prefix commands with `docker exec pihole`, e.g. `docker exec pihole pihole allow example.com`. Don't run `pihole -up` inside the container. Update by pulling the new image: `docker compose pull && docker compose up -d`.
+
+---
+
+## AI agent access (MCP server)
+
+`mcp_server.py` is a **read-only** [Model Context Protocol](https://modelcontextprotocol.io) server. It lets an AI agent (Claude Code, Claude Desktop, or any MCP client) pull metrics and stats from Pi-hole v6, AdGuard Home and Unbound. It uses only the Python standard library and speaks MCP over **stdio**, so it opens no network port. No tool can change lists, settings or blocking.
+
+| Tool | Returns |
+|---|---|
+| `dns_overview` | Summary of every configured service in one call (start here) |
+| `pihole_summary` / `adguard_summary` | Queries, blocked, % blocked, cached/forwarded, clients, gravity size, blocking on/off |
+| `pihole_top` / `adguard_top` | Top allowed or blocked domains, top clients, upstreams (with response time), query types |
+| `pihole_history` / `adguard_history` | Queries and blocks over time |
+| `pihole_queries` / `adguard_queries` | Query log, filterable by domain, client, status, type, upstream |
+| `pihole_search` / `adguard_search` | Why a domain is blocked or allowed: which list, rule or regex matched |
+| `pihole_system` / `adguard_system` | Versions, FTL/host CPU, memory, temperature, diagnosis messages, DNS settings |
+| `pihole_lists` / `adguard_lists` | Subscribed lists with domain or rule counts and last update |
+| `unbound_stats` | Cache hit rate, prefetch, recursion time, request list, DNSSEC secure/bogus, rcodes, memory (`raw: true` gives every counter) |
+| `unbound_status` | Version, uptime, threads, modules |
+
+Pi-hole tools take an optional `hours` argument. With it they use Pi-hole's long-term database instead of the live last-24-hour counters.
+
+### Set up on the DNS host
+
+1. Put `mcp_server.py` next to `pihole_api.py` and `upsert_adguardhome.py`. `update_lists.sh` downloads it.
+2. Credentials go in `/etc/managed_pihole.conf` (`chmod 600`):
+   - **Pi-hole**: create an **app password** (Settings › Web interface / API) and set `PIHOLE_PASSWORD`, so the agent never needs root.
+   - **AdGuard Home**: `ADGUARD_PASSWORD`.
+   - `MCP_SERVICES` picks the services. The default is `DNS_FILTER` + `unbound`.
+3. **Unbound**: stats come from `unbound-control stats_noreset`, which needs remote-control turned on.
+   - `setup_unbound.sh` (1.1.0+) and `install_pihole.sh` (6.3.0+) now enable it, plus `extended-statistics`. Re-run them, or add this to `unbound.conf`:
+
+     ```
+     server:
+         extended-statistics: yes
+     remote-control:
+         control-enable: yes
+         control-interface: /run/unbound.ctl     # Docker: 127.0.0.1 + control-use-cert: no
+     ```
+
+   - **Native**: the socket is root-only. Give the agent's user a narrow sudo rule instead of root, then set `UNBOUND_CONTROL="sudo -n unbound-control"`:
+
+     ```
+     # visudo -f /etc/sudoers.d/mcp-unbound
+     mcp ALL=(root) NOPASSWD: /usr/sbin/unbound-control stats_noreset, /usr/sbin/unbound-control status
+     ```
+
+   - **Docker**: the default is `docker exec unbound unbound-control`. Membership in the `docker` group is root-equivalent, so use the same sudo approach for `docker exec` if that matters to you.
+4. Check that it works: `./mcp_server.py --test` prints every tool's output.
+
+### Connect an agent
+
+The agent starts the server over SSH (key-based login):
+
+```sh
+# Claude Code (add --scope project to share it via .mcp.json)
+claude mcp add dns -- ssh mcp@pihole.local /opt/managed_pihole/mcp_server.py
+```
+
+Claude Desktop / other clients (`claude_desktop_config.json`):
+
+```json
+{ "mcpServers": { "dns": {
+    "command": "ssh",
+    "args": ["mcp@pihole.local", "/opt/managed_pihole/mcp_server.py"] } } }
+```
+
+You can also run it on your own machine against a remote Pi-hole or AdGuard Home with environment variables (for example `-e PIHOLE_API_URL=http://192.168.1.2/api -e PIHOLE_PASSWORD=<app password>`). Unbound then needs `UNBOUND_CONTROL="ssh mcp@pihole.local sudo -n unbound-control"`.
+
+Then ask things like *"What were the top blocked domains in the last 7 days?"*, *"Why is example.com blocked?"* or *"What's Unbound's cache hit rate and recursion latency?"*
 
 ---
 

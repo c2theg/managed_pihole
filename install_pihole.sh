@@ -1,9 +1,12 @@
 #!/bin/bash
-#  By: Christpher Gray | Version 6.2.0 | Updated: 11/5/2026
+#  By: Christpher Gray | Version 6.3.0 | Updated: 11/5/2026
 #  Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #  Install:  wget https://raw.githubusercontent.com/c2theg/srvBuilds/refs/heads/master/install_pihole.sh && chmod u+x install_pihole.sh
 #
 #  ChangeLog:
+#    6.3.0  11/5/2026  (Claude Code) Unbound: extended-statistics and unbound-control on
+#                      127.0.0.1 inside the container (not published), so mcp_server.py can
+#                      read stats with `docker exec unbound unbound-control stats_noreset`.
 #    6.2.0  11/5/2026  (Claude Code) Import and configure ALL managed lists automatically:
 #      - Lists are imported by default with no prompt (IMPORT_LISTS=false to skip).
 #      - Pi-hole: pihole_exclude_list.txt -> webserver.api.excludeDomains (regex form).
@@ -450,6 +453,16 @@ server:
     rrset-roundrobin: yes
     so-reuseport: yes
     infra-keep-probing: yes
+
+    # rcode / query-type / DNSSEC counters for unbound-control stats (mcp_server.py)
+    extended-statistics: yes
+
+# unbound-control for stats. Loopback inside the container only (no port is published),
+# so certificates are not needed: docker exec unbound unbound-control stats_noreset
+remote-control:
+    control-enable: yes
+    control-interface: 127.0.0.1
+    control-use-cert: no
 
 forward-zone:
     name: "."
