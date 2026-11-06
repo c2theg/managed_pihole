@@ -3,6 +3,14 @@
 All notable changes to managed_pihole. Each file also carries its own version and
 changelog in its header. Dates are M/D/YYYY.
 
+## 1.7.1 (11/6/2026): fix netplan error with your own VLAN file
+Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
+
+- **`deploy_multi_pi.sh` 1.2.0 → 1.2.1**:
+  - Fixed `Error in network definition: vlan200: missing 'link' property`, which happened when your own netplan file sorts after `60-managed-pihole-vlans.yaml`. Netplan read our IPv6 settings for `vlan200` first. The VLAN's `id`/`link` are now repeated from your file. Tested with real `netplan generate`, your file before and after ours.
+  - Warns when your file sets `accept-ra: false` on a VLAN, because then that VLAN gets no IPv6.
+  - The "not defined in netplan" warning now actually shows.
+
 ## 1.7.0 (11/6/2026): DNS over IPv6 on every VLAN
 Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
 
