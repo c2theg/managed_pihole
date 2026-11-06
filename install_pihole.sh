@@ -1,9 +1,12 @@
 #!/bin/bash
-#  By: Christpher Gray | Version 6.4.0 | Updated: 11/5/2026
+#  By: Christpher Gray | Version 6.4.1 | Updated: 11/6/2026
 #  Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #  Install:  wget https://raw.githubusercontent.com/c2theg/srvBuilds/refs/heads/master/install_pihole.sh && chmod u+x install_pihole.sh
 #
 #  ChangeLog:
+#    6.4.1  11/6/2026  (Claude Code) FIX: an invalid social-media device list or NextDNS ID
+#                      no longer ends the install - it explains and asks again. SOCIAL_CLIENTS
+#                      accepts commas/semicolons as separators (10.11.1.0/24,10.13.1.0/24).
 #    6.4.0  11/5/2026  (Claude Code) NEW: MCP server for AI agents (ENABLE_MCP, default true).
 #                      Installs mcp_server.py to ${PIHOLE_BASE}/mcp, creates a locked system
 #                      user "dnsmcp" that can only run it (SSH forced command), a Pi-hole app
@@ -296,22 +299,35 @@ fi
 UPSTREAM_MODE="$(lower "${UPSTREAM_MODE}")"
 [[ "${UPSTREAM_MODE}" =~ ^(doh|odoh|dot|plain)$ ]] || die "UPSTREAM_MODE must be doh, odoh, dot or plain."
 
+v_nextdns() { [[ -z "$1" || "$1" =~ ^[A-Za-z0-9]+$ ]]; }
 if [[ "${UPSTREAM_MODE}" == "doh" && -z "${NEXTDNS_ID+x}" ]] && interactive; then
-  read -rp "  NextDNS config ID to use instead of the defaults (Enter to skip): " NEXTDNS_ID
+  while true; do
+    read -rp "  NextDNS config ID to use instead of the defaults (Enter to skip): " NEXTDNS_ID
+    v_nextdns "${NEXTDNS_ID}" && break
+    warn "A NextDNS config ID is letters and digits only (e.g. abc123), or Enter to skip."
+  done
 fi
 NEXTDNS_ID="${NEXTDNS_ID:-}"
-[[ -z "${NEXTDNS_ID}" || "${NEXTDNS_ID}" =~ ^[A-Za-z0-9]+$ ]] || die "NEXTDNS_ID must be alphanumeric."
+v_nextdns "${NEXTDNS_ID}" || die "NEXTDNS_ID must be alphanumeric."
 
+# SOCIAL_CLIENTS: spaces, commas or semicolons between entries; each an IP, subnet, MAC or hostname
+norm_clients() { local -a a; read -ra a <<<"${1//[,;]/ }"; echo "${a[*]}"; }   # no globbing
+v_clients() { local c a; read -ra a <<<"$1"; for c in "${a[@]}"; do [[ "$c" =~ ^[A-Za-z0-9.:_/-]+$ ]] || { warn "Not an IP, subnet, MAC or hostname: '$c'"; return 1; }; done; }
 is_true "${IMPORT_LISTS}" && IMPORT_LISTS=true || IMPORT_LISTS=false
 if [[ "${IMPORT_LISTS}" == "true" ]]; then
   info "Managed lists from github.com/c2theg/managed_pihole will be imported and synced daily:"
   info "  block lists, regex deny/allow, exact allowlist, excluded domains, social group,"
   info "  DoH-bypass blocking. First gravity/filter build takes ~5-10 min. (IMPORT_LISTS=false to skip)"
   if [[ -z "${SOCIAL_CLIENTS}" ]] && interactive; then
-    read -rp "  Devices allowed to use social media (IPs/hostnames, space separated, Enter = none): " SOCIAL_CLIENTS
+    while true; do
+      read -rp "  Devices allowed to use social media (IPs, subnets like 10.11.1.0/24, MACs or hostnames; Enter = none): " SOCIAL_CLIENTS
+      SOCIAL_CLIENTS="$(norm_clients "${SOCIAL_CLIENTS}")"
+      v_clients "${SOCIAL_CLIENTS}" && break
+    done
   fi
 fi
-[[ -z "${SOCIAL_CLIENTS}" || "${SOCIAL_CLIENTS}" =~ ^[A-Za-z0-9.:_/\ -]+$ ]] || die "SOCIAL_CLIENTS may only contain IPs, subnets, MACs or hostnames."
+SOCIAL_CLIENTS="$(norm_clients "${SOCIAL_CLIENTS}")"
+v_clients "${SOCIAL_CLIENTS}" || die "SOCIAL_CLIENTS may only contain IPs, subnets, MACs or hostnames."
 
 if [[ -z "${ENABLE_WIREGUARD}" ]] && interactive; then
   echo ""
