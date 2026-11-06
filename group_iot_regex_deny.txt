@@ -1,7 +1,7 @@
 # group_iot_regex_deny.txt - EXTRA regex deny for the "IoT" group only
 # Version: 0.1.0 | Updated: 11/5/2026 | Claude Code (Anthropic) - Claude Opus 5.5 (claude-opus-5-5)
 #
-# Applied by upsert_vlan_groups.py to clients in the IoT VLAN, on top of
+# Applied by upsert_vlan_groups.py to every VLAN with the "iot" profile, on top of
 # blocklist_regexs_cg.txt. Pi-hole v6 regex syntax (POSIX ERE).
 # Add your own in group_iot_regex_deny.local.txt (not overwritten by updates).
 

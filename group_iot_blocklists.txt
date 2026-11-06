@@ -1,7 +1,7 @@
 # group_iot_blocklists.txt - EXTRA block lists for the "IoT" group only
 # Version: 0.1.0 | Updated: 11/5/2026 | Claude Code (Anthropic) - Claude Opus 5.5 (claude-opus-5-5)
 #
-# Applied by upsert_vlan_groups.py (deploy_multi_pi.sh) to clients in the IoT VLAN, ON TOP
+# Applied by upsert_vlan_groups.py (deploy_multi_pi.sh) to every VLAN with the "iot" profile, ON TOP
 # of the normal lists every client gets (cgray_blocklists.txt). IoT devices need very
 # few domains, so this is far stricter than what Users get. If a device breaks, unblock
 # its domains for IoT only in group_iot_allow.local.txt (one domain per line).

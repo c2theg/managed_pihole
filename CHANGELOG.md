@@ -3,6 +3,19 @@
 All notable changes to managed_pihole. Each file also carries its own version and
 changelog in its header. Dates are M/D/YYYY.
 
+## 1.4.1 (11/5/2026): many VLANs, any subnet size, list profiles
+Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
+
+- **`deploy_multi_pi.sh` 1.0.0 → 1.1.0**:
+  - Finds the trunk behind a VLAN default route (`vlan200@ens18` → `ens18`). VLAN interfaces that already exist are offered and kept as is.
+  - The untagged VLAN can get a new address when the VM has none there. Any number of new tagged VLANs.
+  - Any prefix from /8 to /30, with clear errors for a network or broadcast address, overlaps, and VLANs that already exist. Warns when a subnet overlaps another route (e.g. Docker).
+  - List profile per VLAN (`none`/`iot`/`kids`/`guest`/own). `dns-only` is refused only on the management interface (default route / SSH session). `Default` is refused as a name.
+  - Fixed: the questions for existing VLANs read the interface list instead of your answers.
+- **`upsert_vlan_groups.py` 1.0.0 → 1.1.0**: `Name=subnet@profile`, so several VLANs can share a list set. Refuses `Default`.
+- **New `group_kids_blocklists.txt`, `group_guest_blocklists.txt` 0.1.0** (HaGeZi, checked for HTTP 200).
+- **Tested**: Ubuntu 24.04 test VM shaped like a real one (trunk with no IPv4, existing `vlan200` management VLAN, 5 VLANs including a /23). Covered the wizard with bad answers, `netplan generate`, apply and re-run. On live Pi-hole v6: 5 groups; shared lists applied to IoT, Kids and Guest; 0 changes on re-run.
+
 ## 1.4.0 (11/5/2026): one Pi-hole for several VLANs
 Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
 

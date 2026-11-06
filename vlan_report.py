@@ -100,7 +100,7 @@ def parse_vlan_map(raw):
             continue
         name, cidr = item.split("=", 1)
         try:
-            out.append((name.strip(), ipaddress.ip_network(cidr.strip(), strict=False)))
+            out.append((name.strip(), ipaddress.ip_network(cidr.split("@")[0].strip(), strict=False)))
         except ValueError:
             raise ReportError("MCP_VLANS: bad subnet %r" % cidr)
     return out

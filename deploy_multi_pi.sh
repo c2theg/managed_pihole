@@ -3,30 +3,33 @@
 #  deploy_multi_pi.sh  -  ONE Pi-hole serving several VLANs (from a trunk), with
 #                         different block lists per VLAN and per-VLAN monitoring
 #
-#  Version:       1.0.0
+#  Version:       1.1.0
 #  Last Updated:  11/5/2026
 #  Author:        Christopher Gray
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #
 #  Ubuntu 22.04 / 24.04 / 26.04 VM on Proxmox or VMware, VLANs arriving as a trunk:
 #
-#      trunk (ens18) ──┬─ untagged (VLAN 0)  Users  192.168.1.10/24   (VM's normal address)
-#                      └─ ens18.666 → vlan666 IoT   192.168.66.2/24   (added by this script)
+#      trunk (ens18) ──┬─ untagged          LAN      10.11.1.2/24     (added, or the VM's own)
+#                      ├─ vlan200 (exists) Servers  10.13.1.35/24    (management, kept as is)
+#                      ├─ vlan666          IoT      172.16.12.2/23   (added by this script)
+#                      ├─ vlan2            Kids     192.168.5.2/24   (added by this script)
+#                      └─ vlan20           Guest    192.168.13.2/24  (added by this script)
 #                                 │
 #                     Docker: Pi-hole (+ Unbound + dnscrypt-proxy, install_pihole.sh)
-#                             group "Users" = 192.168.1.0/24  → normal lists
-#                             group "IoT"   = 192.168.66.0/24 → normal lists + group_iot_*.txt
+#                             one group per VLAN, its subnet as the client:
+#                             normal lists + group_<profile>_*.txt (iot / kids / guest / none)
 #
 #  What it does (safe to re-run; it only changes what differs):
 #    1. checks the hypervisor (Proxmox/KVM or VMware) and prints what to set there
-#    2. adds one VLAN sub-interface per tagged VLAN on the trunk (netplan, static IP,
-#       no gateway, no IPv6) - the existing untagged config is not touched
+#    2. finds the trunk and the VLAN interfaces already on it (those are kept as is) and adds
+#       the missing ones (netplan, static IP, no gateway, no IPv6); any subnet /8 - /30
 #    3. installs the Docker stack with install_pihole.sh (Pi-hole, Unbound, dnscrypt-proxy,
 #       managed lists, MCP server) unless it is already installed
-#    4. one Pi-hole group per VLAN, the VLAN subnet as its client, and the group's own
-#       lists (upsert_vlan_groups.py + group_<name>_*.txt) - re-synced daily
-#    5. "dns-only" VLANs (IoT by default): the VM answers DNS (and ping) there and
-#       nothing else - no web UI, no SSH, no routing through the VM
+#    4. one Pi-hole group per VLAN, the VLAN subnet as its client, and extra lists per
+#       profile (upsert_vlan_groups.py + group_<profile>_*.txt) - re-synced daily
+#    5. "dns-only" VLANs (all but the management one by default): the VM answers DNS (and
+#       ping) there and nothing else - no web UI, no SSH, no routing through the VM
 #    6. optional per-VLAN reverse lookups (ROUTERS) so reports show device names
 #    7. per-VLAN monitoring: `sudo dns-vlan-report`, MCP tools for AI agents
 #       (pihole_vlan_report, pihole_client_report) and alerts every 15 minutes when a
@@ -35,20 +38,26 @@
 #
 #  Usage:
 #    sudo bash deploy_multi_pi.sh          # asks: trunk NIC, each VLAN (ID, name, this VM's
-#                                          # IP/prefix, dns-only/full, router), alert webhook
-#    sudo VLANS="Users:0:auto IoT:666:192.168.66.2/24" \
-#         ROUTERS="Users=192.168.1.1 IoT=192.168.66.1" \
+#                                          # IP/prefix, access, lists, router), alert webhook
+#    sudo VLANS="Servers:200:auto:full IoT:666:172.16.12.2/23:dns-only:iot Kids:2:192.168.5.2/24::kids" \
+#         ROUTERS="Servers=10.13.1.1 IoT=172.16.12.1 Kids=192.168.5.1" \
 #         ALERT_WEBHOOK=https://ntfy.sh/my-secret-topic bash deploy_multi_pi.sh
 #    DRY_RUN=true bash deploy_multi_pi.sh                           # show what would change
 #
 #  Settings (env; saved to ${PIHOLE_BASE}/multi_pi.conf and reused on the next run):
-#    VLANS        space separated NAME:VLAN_ID:ADDRESS[:MODE]
-#                   VLAN_ID 0  = untagged / native VLAN of the trunk; ADDRESS "auto" = the
-#                                VM's existing address on TRUNK_IF
-#                   VLAN_ID 1-4094 = tagged; ADDRESS = this VM's IP/prefix in that VLAN
-#                   MODE full | dns-only   (default: full for VLAN 0, dns-only otherwise)
+#    VLANS        space separated NAME:VLAN_ID:ADDRESS[:MODE[:LISTS]]
+#                   NAME     Pi-hole group name (not "Default", that is Pi-hole's own group)
+#                   VLAN_ID  0 = untagged / native VLAN of the trunk, 1-4094 = tagged
+#                   ADDRESS  this VM's IP/prefix in that VLAN (/8 - /30), or "auto" = the
+#                            address it already has there (an existing VLAN interface /
+#                            the trunk's own address)
+#                   MODE     full | dns-only  (default: full on the management interface -
+#                            default route / SSH - dns-only elsewhere)
+#                   LISTS    extra list profile: none | iot | kids | guest | <your own>
+#                            (default from the name: *iot*->iot, *kid*->kids, *guest*->guest)
 #                 not set: asked interactively (re-runs offer the saved setup)
-#    TRUNK_IF     interface carrying the trunk          (default: the one with the default route)
+#    TRUNK_IF     interface carrying the trunk  (default: the default-route NIC, or its parent
+#                 when that is a VLAN interface such as vlan200@ens18)
 #    ROUTERS      "NAME=router-ip ..." per-VLAN reverse DNS (device names in reports)
 #    ALERT_WEBHOOK  URL that receives alerts (POST)     (default: none, journal only)
 #    ALERT_*      thresholds, see vlan_report.py        (written to the MCP local config)
@@ -58,11 +67,17 @@
 #    passed through. DNS_FILTER is always pihole (groups are a Pi-hole feature).
 #
 #  ChangeLog:
+#    1.1.0  11/5/2026  Many VLANs: detects VLAN interfaces that already exist on the trunk
+#                      (kept as is) and the trunk behind a VLAN default route; untagged VLAN
+#                      without an address can get one; any prefix /8-/30 with clear errors
+#                      (network/broadcast address, overlaps); list profiles per VLAN
+#                      (none/iot/kids/guest); dns-only refused only on the management
+#                      interface; "Default" refused as a name. (Claude Code)
 #    1.0.0  11/5/2026  New file (Claude Code).
 #-------------------------------------------------------------------------------
 set -euo pipefail
 
-SCRIPT_VERSION="1.0.0"   # not VERSION: /etc/os-release (sourced below) sets that
+SCRIPT_VERSION="1.1.0"   # not VERSION: /etc/os-release (sourced below) sets that
 SRC_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PIHOLE_BASE="${PIHOLE_BASE:-/opt/pihole}"
 SAVED="${PIHOLE_BASE}/multi_pi.conf"
@@ -128,26 +143,25 @@ hv_notes() {
     proxmox) cat <<'EOF'
   Proxmox (KVM detected). For the trunk to reach this VM:
     - Node > System > Network > the bridge of this VM (e.g. vmbr0): tick "VLAN aware", Apply.
-      (Linux bridge default bridge-vids 2-4094 already includes 666.)
-    - VM > Hardware > Network Device: leave "VLAN Tag" EMPTY. Untagged frames = Users,
-      tagged frames (666) pass through to the VM. Optional, to allow only what you need:
-        qm set <vmid> -net0 virtio=<MAC>,bridge=vmbr0,trunks=666
-    - Physical switch port to the Proxmox host: trunk, VLAN 666 tagged, Users untagged (native).
+      (Linux bridge default bridge-vids 2-4094 already includes every tagged VLAN.)
+    - VM > Hardware > Network Device: leave "VLAN Tag" EMPTY. Untagged frames = the native
+      VLAN (VLAN 1 on most switches), tagged frames pass through to the VM.
+    - Physical switch port to the Proxmox host: trunk, your VLANs tagged, native untagged.
     - Open vSwitch bridge instead of Linux bridge: same idea, VM port with no tag (trunk).
 EOF
     ;;
     vmware) cat <<'EOF'
   VMware (detected). For the trunk to reach this VM:
     - Standard vSwitch: the VM's port group VLAN ID = 4095 (all VLANs, tagging done in the VM).
-    - Distributed switch: port group VLAN type "VLAN trunking", range incl. 666.
-    - Physical uplink port: trunk, VLAN 666 tagged, Users untagged (native).
+    - Distributed switch: port group VLAN type "VLAN trunking", range incl. your VLANs.
+    - Physical uplink port: trunk, your VLANs tagged, native untagged.
     - No promiscuous mode / MAC changes / forged transmits needed: every VLAN uses the
       VM's own MAC (tagged sub-interface, not macvlan).
 EOF
     ;;
     *) cat <<'EOF'
   Hypervisor: not Proxmox/KVM or VMware (or bare metal). The switch port / virtual NIC must
-  deliver the Users VLAN untagged and the other VLANs tagged (802.1Q trunk).
+  deliver the native VLAN untagged and the other VLANs tagged (802.1Q trunk).
 EOF
     ;;
   esac
@@ -158,7 +172,38 @@ hv_notes
 # 2. VLAN definitions
 # =============================================================
 section "VLANs"
-DETECTED_IF="$(ip -4 route show default 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')"
+# Every 802.1Q interface: "iface vid parent ipv4/prefix|-"
+vlan_info() {
+  python3 -I -c '
+import json, subprocess
+def j(*a):
+    try: return json.loads(subprocess.run(["ip", "-j"] + list(a), capture_output=True, text=True).stdout or "[]")
+    except Exception: return []
+v4 = {}
+for a in j("-4", "addr", "show"):
+    for i in a.get("addr_info", []):
+        if i.get("scope") == "global":
+            v4.setdefault(a["ifname"], "%s/%s" % (i["local"], i["prefixlen"]))
+for l in j("-d", "link", "show"):
+    li = l.get("linkinfo") or {}
+    if li.get("info_kind") == "vlan" and l.get("link"):
+        print(l["ifname"], (li.get("info_data") or {}).get("id"), l["link"], v4.get(l["ifname"], "-"))
+'
+}
+if_v4()  { ip -4 -o addr show dev "$1" scope global 2>/dev/null | awk '{print $4}'; }   # all IPv4/prefix of IFACE
+VLAN_INFO=$(vlan_info || true)
+DEF_IF="$(ip -4 route show default 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev"){print $(i+1); exit}}')"
+DEF_GW="$(ip -4 route show default 2>/dev/null | awk '{print $3; exit}')"
+# The trunk is the default-route NIC - or its parent when that is itself a VLAN (e.g. vlan200@ens18)
+DETECTED_IF="$(awk -v i="${DEF_IF}" '$1==i {print $3; exit}' <<<"${VLAN_INFO}")"
+DETECTED_IF="${DETECTED_IF:-${DEF_IF}}"
+# Interfaces you manage this VM through (default route + live SSH sessions): never dns-only
+MGMT_IFS="${DEF_IF}"
+for ip4 in $(ss -Htn state established '( sport = :22 )' 2>/dev/null | awk '{print $3}' | sed -E 's/:[0-9]+$//; s/^::ffff://' | sort -u); do
+  i=$(ip -4 -o addr show 2>/dev/null | awk -v a="$ip4" '{split($4, p, "/"); if (p[1]==a) {print $2; exit}}')
+  [[ -n "$i" && " ${MGMT_IFS} " != *" $i "* ]] && MGMT_IFS+=" $i"
+done
+MGMT_IFS="${MGMT_IFS# }"
 
 # ---- interactive setup (runs when VLANS is not given; on re-runs it offers the saved setup) ----
 ask() { # VAR "question" default  -> re-asks until the validator (optional 4th arg) accepts
@@ -170,56 +215,140 @@ ask() { # VAR "question" default  -> re-asks until the validator (optional 4th a
   done
 }
 ask_yn() { local __a; read -rp "  $1 [$([[ ${2:-y} == y ]] && echo Y/n || echo y/N)]: " __a || __a=""; __a="${__a:-${2:-y}}"; [[ "${__a,,}" == y* ]]; }
-v_iface() { ip link show "$1" >/dev/null 2>&1 || { warn "No interface '$1'. Interfaces: $(ls /sys/class/net | grep -vE '^(lo|docker|br-|veth|vlan)' | tr '\n' ' ')"; return 1; }; }
+v_iface() { ip link show "$1" >/dev/null 2>&1 || { warn "No interface '$1'. Interfaces: $(ls /sys/class/net | grep -vE '^(lo|docker|br-|veth)' | tr '\n' ' ')"; return 1; }; }
 v_name()  { [[ "$1" =~ ^[A-Za-z][A-Za-z0-9_-]{0,30}$ ]] || { warn "Use letters, digits, - or _ (start with a letter)."; return 1; }
+            [[ "${1,,}" != default ]] || { warn "'Default' is Pi-hole's built-in group (every device is in it). Use e.g. LAN or Main."; return 1; }
             [[ " ${_names,,} " != *" ${1,,} "* ]] || { warn "Name '$1' is already used."; return 1; }; }
-v_vid()   { [[ "$1" =~ ^[0-9]+$ ]] && (( $1 >= 1 && $1 <= 4094 )) || { warn "VLAN ID must be 1-4094 (the untagged VLAN is already set)."; return 1; }
-            [[ " ${_vids} " != *" $1 "* ]] || { warn "VLAN $1 is already defined."; return 1; }; }
-v_cidr()  { python3 -I -c 'import ipaddress,sys; i=ipaddress.ip_interface(sys.argv[1]); sys.exit(0 if i.version==4 and "/" in sys.argv[1] and i.network.prefixlen<=30 and i.ip not in (i.network.network_address,i.network.broadcast_address) else 1)' "$1" 2>/dev/null \
-            || { warn "Enter this VM's address WITH prefix, e.g. 192.168.66.2/24"; return 1; }; }
+v_vid()   { [[ "$1" =~ ^[0-9]+$ ]] && (( $1 >= 1 && $1 <= 4094 )) || { warn "VLAN ID must be 1-4094."; return 1; }
+            [[ " ${_vids} " != *" $1 "* ]] || { warn "VLAN $1 is already in this setup."; return 1; }
+            local e; e=$(awk -v t="${TRUNK_IF}" -v v="$1" '$3==t && $2==v {print $1; exit}' <<<"${VLAN_INFO}")
+            [[ -z "$e" ]] || { warn "VLAN $1 already exists here as ${e} (offered above, configured outside this script)."; return 1; }; }
+v_cidr()  { local m; m=$(python3 -I -c '
+import ipaddress, sys
+a, others = sys.argv[1], sys.argv[2].split()
+if "/" not in a:
+    sys.exit("Add the prefix length, e.g. %s/24 (anything from /8 to /30 works, e.g. /23 or /22)." % a)
+try:
+    i = ipaddress.IPv4Interface(a)
+except ValueError:
+    sys.exit("%r is not an IPv4 address/prefix (e.g. 172.16.12.2/23)." % a)
+n = i.network
+if not 8 <= n.prefixlen <= 30:
+    sys.exit("Prefix /%d: use /8 to /30." % n.prefixlen)
+if i.ip == n.network_address:
+    sys.exit("%s is the NETWORK address of %s, not a host. Give this VM a free address in it, e.g. %s/%d (%s is usually the router)."
+             % (i.ip, n, n.network_address + 2, n.prefixlen, n.network_address + 1))
+if i.ip == n.broadcast_address:
+    sys.exit("%s is the BROADCAST address of %s. Give this VM a free host address, e.g. %s/%d."
+             % (i.ip, n, n.network_address + 2, n.prefixlen))
+for o in others:
+    if n.overlaps(ipaddress.ip_network(o)):
+        sys.exit("%s overlaps %s, already used by another VLAN here." % (n, o))
+' "$1" "${_nets}" 2>&1) || { warn "$m"; return 1; }; }
 v_ip_opt() { [[ -z "$1" || "$1" == none ]] || python3 -I -c 'import ipaddress,sys; ipaddress.IPv4Address(sys.argv[1])' "$1" 2>/dev/null || { warn "Enter an IPv4 address, or 'none'."; return 1; }; }
 v_url_opt() { [[ -z "$1" || "$1" == none || "$1" =~ ^https?://[^[:space:]]+$ ]] || { warn "Enter an http(s):// URL, or 'none'."; return 1; }; }
+v_profile() { [[ "$1" =~ ^[1-4]$ || "${1,,}" =~ ^[a-z][a-z0-9_-]{0,30}$ ]] || { warn "Pick 1-4, or type a profile name."; return 1; }; }
 gw_guess() { python3 -I -c 'import ipaddress,sys; print(next(ipaddress.ip_interface(sys.argv[1]).network.hosts()))' "$1" 2>/dev/null || true; }
+net_info() { python3 -I -c 'import ipaddress,sys; n=ipaddress.ip_interface(sys.argv[1]).network; print("%s  (%s - %s, %d devices)" % (n, n.network_address+1, n.broadcast_address-1, n.num_addresses-2))' "$1"; }
+# default list profile from the group name
+profile_guess() { case "${1,,}" in *iot*|*cam*|*smart*) echo iot ;; *kid*|*child*|*famil*) echo kids ;; *guest*|*visit*) echo guest ;; *) echo none ;; esac; }
+
+# per-VLAN questions; appends to VLANS / ROUTERS.   VID IFACE ADDRSPEC(auto|ip/pfx) ADDR DEFAULT_NAME
+vlan_questions() {
+  local vid=$1 iface=$2 spec=$3 addr=$4 def_name=${5:-} label name mode router p _m _p
+  label=$([[ $vid == 0 ]] && echo "the untagged VLAN" || echo "VLAN ${vid}")
+  echo "    Subnet: $(net_info "$addr")"
+  ask name "  Name for ${label}'s group (e.g. Users, IoT, Kids)" "${def_name}" v_name
+  if [[ " ${MGMT_IFS} " == *" ${iface} "* ]]; then
+    echo "    Access: full (you manage this VM through ${iface}, so it stays reachable)."
+    mode=full
+  else
+    echo "    What may devices in ${name} reach on this VM?"
+    echo "      1) dns-only - DNS (and ping) only; no web UI, no SSH   (IoT, guests, kids)"
+    echo "      2) full     - everything, like your management network"
+    ask _m "  Choose" "1"
+    mode=$([[ "$_m" == 2 || "${_m,,}" == full ]] && echo full || echo dns-only)
+  fi
+  p=$(profile_guess "$name")
+  echo "    Extra block lists for ${name} (every VLAN already gets the normal managed lists):"
+  echo "      1) none  - normal lists only                                   (people, servers)"
+  echo "      2) iot   - + threat intel, vendor telemetry, DoH/VPN bypass, dyndns, ... (strict)"
+  echo "      3) kids  - + adult, gambling, threat intel, scams, DoH/VPN bypass"
+  echo "      4) guest - + threat intel, scams, adult"
+  echo "      or type your own profile name (uses ${VLAN_DIR}/group_<profile>_*.local.txt)"
+  ask _p "  Choose" "$(case $p in none) echo 1;; iot) echo 2;; kids) echo 3;; guest) echo 4;; esac)" v_profile
+  case "${_p,,}" in 1) p=none ;; 2) p=iot ;; 3) p=kids ;; 4) p=guest ;; *) p="${_p,,}" ;; esac
+  ask router "  Router/gateway IP in ${name}, for device names in reports ('none' to skip)" \
+      "$([[ "$iface" == "${DEF_IF}" && -n "${DEF_GW}" ]] && echo "${DEF_GW}" || gw_guess "$addr")" v_ip_opt
+  VLANS+="${VLANS:+ }${name}:${vid}:${spec}:${mode}:${p}"
+  _names+=" ${name}"; _vids+=" ${vid}"
+  _nets+=" $(python3 -I -c 'import ipaddress,sys; print(ipaddress.ip_interface(sys.argv[1]).network)' "$addr")"
+  [[ -n "$router" && "$router" != none ]] && ROUTERS+="${ROUTERS:+ }${name}=${router}"
+  return 0
+}
 
 wizard() {
-  local name vid addr mode router more=y def_name def_vid _m
-  _names=""; _vids=""; VLANS=""; ROUTERS=""
+  local addr host iface vid more n
+  _names=""; _vids=""; _nets=""; VLANS=""; ROUTERS=""
   cat <<'EOF'
 
   One Pi-hole serves every VLAN of the trunk. Each VLAN becomes a Pi-hole group with
   its own lists (IoT can block far more than Users) and its own DNS address on this VM.
+  Any subnet size from /8 to /30 works (/24, /23, /22, ...).
 
 EOF
-  ask TRUNK_IF "Trunk interface (carries all VLANs)" "${TRUNK_IF:-${DETECTED_IF}}" v_iface
-  local host; host=$(ip -4 -o addr show dev "${TRUNK_IF}" scope global 2>/dev/null | awk '{print $4; exit}')
-  [[ -n "$host" ]] || die "${TRUNK_IF} has no IPv4 address. The untagged VLAN must already work (it is how you reach this VM)."
+  ask TRUNK_IF "Trunk interface (the NIC that carries all VLANs)" "${TRUNK_IF:-${DETECTED_IF}}" v_iface
+  host=$(if_v4 "${TRUNK_IF}" | head -1)
   echo ""
-  echo "  Untagged / native VLAN (VLAN 0) on ${TRUNK_IF}: this VM is ${host} (kept as is)."
-  ask name "  Name for this VLAN's group" "Users" v_name
-  ask router "  Router/gateway IP on it, for device names in reports ('none' to skip)" \
-      "$(ip -4 route show default dev "${TRUNK_IF}" 2>/dev/null | awk '{print $3; exit}')" v_ip_opt
-  VLANS="${name}:0:auto:full"; _names="${name}"; _vids="0"
-  [[ -n "$router" && "$router" != none ]] && ROUTERS="${name}=${router}"
-  local n=0
+  echo "  Found on ${TRUNK_IF}:"
+  echo "    untagged      : ${host:-no IPv4 address}$([[ " ${MGMT_IFS} " == *" ${TRUNK_IF} "* ]] && echo "   (management)")"
+  while read -r iface vid _ addr; do
+    [[ -n "$iface" ]] || continue
+    printf '    VLAN %-8s : %s on %s%s\n' "$vid" "${addr/#-/no IPv4 address}" "$iface" \
+      "$([[ " ${MGMT_IFS} " == *" ${iface} "* ]] && echo "   (management)")"
+  done < <(awk -v t="${TRUNK_IF}" '$3==t' <<<"${VLAN_INFO}" | sort -k2n)
+
+  # -- untagged / native VLAN --
+  echo ""
+  echo "  Untagged (native) VLAN of ${TRUNK_IF}. On a Proxmox VLAN-aware bridge with no VLAN tag on"
+  echo "  the VM NIC, this is the bridge's native VLAN - usually VLAN 1 on the switch."
+  if [[ -n "$host" ]]; then
+    if ask_yn "Serve DNS on it (this VM is ${host} there)?" y; then
+      vlan_questions 0 "${TRUNK_IF}" auto "$host" "Users"
+    fi
+  elif ask_yn "This VM has no IPv4 address there. Give it one and serve DNS on it?" n; then
+    ask addr "  This VM's IP/prefix on the untagged VLAN (static, e.g. 10.11.1.2/24)" "" v_cidr
+    vlan_questions 0 "${TRUNK_IF}" "$addr" "$addr" "LAN"
+  fi
+
+  # -- tagged VLANs that already exist on this VM (fd 3: the questions read stdin) --
+  while read -r -u 3 iface vid _ addr; do
+    [[ -n "$iface" ]] || continue
+    echo ""
+    if [[ "$addr" == - ]]; then
+      warn "VLAN ${vid} (${iface}) exists but has no IPv4 address; skipped (give it one in netplan to use it)."
+      continue
+    fi
+    if ask_yn "Serve DNS on VLAN ${vid} (${iface}, this VM is ${addr}, already configured)?" y; then
+      vlan_questions "$vid" "$iface" auto "$addr" ""
+    fi
+  done 3< <(awk -v t="${TRUNK_IF}" '$3==t' <<<"${VLAN_INFO}" | sort -k2n)
+
+  # -- new tagged VLANs (added by this script) --
+  n=0
   while true; do
     echo ""
-    if (( n == 0 )); then ask_yn "Add a tagged VLAN (e.g. IoT)?" y || break
-    else ask_yn "Add another tagged VLAN?" n || break; fi
-    def_vid=$([[ $n == 0 && " ${_vids} " != *" 666 "* ]] && echo 666 || echo "")
-    def_name=$([[ $n == 0 && " ${_names,,} " != *" iot "* ]] && echo IoT || echo "")
-    ask vid  "  VLAN ID (802.1Q tag)" "${def_vid}" v_vid
-    ask name "  Name for VLAN ${vid}'s group" "${def_name}" v_name
-    ask addr "  This VM's IP/prefix on VLAN ${vid} (static, e.g. 192.168.$( (( vid <= 255 )) && echo "${vid}" || echo X ).2/24)" "" v_cidr
-    echo "  Access to this VM from VLAN ${vid}:"
-    echo "    1) dns-only - only DNS (and ping); no web UI, no SSH  (recommended for IoT/guests)"
-    echo "    2) full     - like the untagged VLAN"
-    ask _m "  Choose" "1" 
-    mode=$([[ "$_m" == 2 || "$_m" == full ]] && echo full || echo dns-only)
-    ask router "  Router IP on VLAN ${vid}, for device names ('none' to skip)" "$(gw_guess "$addr")" v_ip_opt
-    VLANS+=" ${name}:${vid}:${addr}:${mode}"; _names+=" ${name}"; _vids+=" ${vid}"
-    [[ -n "$router" && "$router" != none ]] && ROUTERS+="${ROUTERS:+ }${name}=${router}"
+    ask_yn "Add $( (( n == 0 )) && echo "a" || echo "another") tagged VLAN that this VM is not on yet?" "$( (( n == 0 )) && echo y || echo n)" || break
+    ask vid "  VLAN ID (802.1Q tag)" "" v_vid
+    if [[ "$vid" == 1 && "$HV" == proxmox ]]; then
+      warn "On a Proxmox VLAN-aware bridge VLAN 1 normally arrives UNTAGGED (answer it as the untagged VLAN above)."
+      ask_yn "Add VLAN 1 as tagged anyway?" n || continue
+    fi
+    ask addr "  This VM's IP/prefix on VLAN ${vid} (static, e.g. 192.168.20.2/24 or 172.16.12.2/23)" "" v_cidr
+    vlan_questions "$vid" "vlan${vid}" "$addr" "$addr" "$([[ "$vid" == 666 && " ${_names,,} " != *" iot "* ]] && echo IoT)"
     n=$((n + 1))
   done
+  [[ -n "${VLANS}" ]] || die "No VLANs chosen; nothing to do."
   echo ""
   ask ALERT_WEBHOOK "Alert webhook URL (ntfy topic URL / Slack / Discord; 'none' = journal only)" \
       "${ALERT_WEBHOOK:-none}" v_url_opt
@@ -241,78 +370,147 @@ if [[ -z "${ENV_VAL[VLANS]:-}" ]] && interactive; then
   else
     wizard
   fi
-  echo ""; echo "  Setup:"; show_setup
+  echo ""; echo "  Setup (NAME:VLAN:ADDRESS:ACCESS:LISTS):"; show_setup
   ask_yn "Continue with this setup?" y || die "Stopped; nothing was changed yet."
 fi
 TRUNK_IF="${TRUNK_IF:-${DETECTED_IF}}"
 [[ -n "${TRUNK_IF}" ]] || die "Could not find the trunk interface; set TRUNK_IF=ens18 (or similar)."
 ip link show "${TRUNK_IF}" >/dev/null 2>&1 || die "Interface ${TRUNK_IF} does not exist."
-[[ -n "${VLANS:-}" ]] || die 'No VLANs. Run interactively, or set VLANS="Users:0:auto IoT:666:192.168.66.2/24"'
-info "Trunk interface: ${TRUNK_IF}"
+[[ -n "${VLANS:-}" ]] || die 'No VLANs. Run interactively, or set VLANS="Users:0:auto IoT:666:172.16.12.2/23"'
+info "Trunk interface: ${TRUNK_IF}   (management: ${MGMT_IFS:-?})"
 
-# Parse + validate with python (ipaddress); output: NAME ID IFACE ADDR/PFX SUBNET MODE
-host_addr=$(ip -4 -o addr show dev "${TRUNK_IF}" scope global 2>/dev/null | awk '{print $4; exit}')
-PARSED=$(python3 -I - "${VLANS}" "${TRUNK_IF}" "${host_addr}" <<'PY'
+# Parse + validate (python ipaddress). Output per VLAN:
+#   NAME VID IFACE ADDR/PFX SUBNET MODE PROFILE ORIGIN    ORIGIN: have = configured outside this
+#   script (left alone) | add = written to ${NETPLAN_FILE}
+OURS=""; [[ -r "${NETPLAN_FILE}" ]] && OURS=$(cat "${NETPLAN_FILE}")
+PARSED=$(python3 -I - "${VLANS}" "${TRUNK_IF}" "$(if_v4 "${TRUNK_IF}" | tr '\n' ' ')" "${VLAN_INFO}" \
+                     "${OURS}" "${MGMT_IFS}" "$(ip -4 -o route show 2>/dev/null)" <<'PY'
 import ipaddress, re, sys
-vlans, trunk, host = sys.argv[1], sys.argv[2], sys.argv[3]
-seen_n, seen_i, nets = set(), set(), []
+vlans, trunk, trunk_v4, vinfo, ours, mgmt, routes = sys.argv[1:8]
+trunk_v4 = trunk_v4.split()
+mgmt = mgmt.split()
+existing = {}  # vid -> (iface, addr|None) for VLAN interfaces on the trunk
+for line in vinfo.splitlines():
+    f = line.split()
+    if len(f) == 4 and f[2] == trunk and f[1].isdigit():
+        existing[int(f[1])] = (f[0], None if f[3] == "-" else f[3])
+our_ifaces = set(re.findall(r"^    (\S+):", ours, re.M)) - {trunk}
+our_addrs = {a.strip() for grp in re.findall(r"addresses: \[([^\]]*)\]", ours) for a in grp.split(",")}
+
+def guess_profile(name):
+    n = name.lower()
+    for keys, p in ((("iot", "cam", "smart"), "iot"), (("kid", "child", "famil"), "kids"), (("guest", "visit"), "guest")):
+        if any(k in n for k in keys):
+            return p
+    return "none"
+
+seen_n, seen_i, nets, out = set(), set(), [], []
 for item in vlans.split():
     parts = item.split(":")
-    if len(parts) not in (3, 4):
-        sys.exit("VLANS: %r is not NAME:VLAN_ID:ADDRESS[:MODE]" % item)
+    if len(parts) not in (3, 4, 5):
+        sys.exit("VLANS: %r is not NAME:VLAN_ID:ADDRESS[:MODE[:LISTS]]" % item)
     name, vid, addr = parts[:3]
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,30}", name):
         sys.exit("VLANS: bad name %r (letters, digits, - and _)" % name)
+    if name.lower() == "default":
+        sys.exit("VLANS: 'Default' is Pi-hole's built-in group (every device is in it); use e.g. LAN or Main")
     if not vid.isdigit() or int(vid) > 4094:
         sys.exit("VLANS: bad VLAN id %r (0 = untagged, 1-4094)" % vid)
     vid = int(vid)
-    mode = parts[3] if len(parts) == 4 else ("full" if vid == 0 else "dns-only")
-    if mode not in ("full", "dns-only"):
-        sys.exit("VLANS: mode for %s must be full or dns-only" % name)
     if name.lower() in seen_n or vid in seen_i:
         sys.exit("VLANS: duplicate name or VLAN id in %r" % item)
     seen_n.add(name.lower()); seen_i.add(vid)
+    origin = "add"
     if vid == 0:
-        if addr == "auto":
-            if not host:
-                sys.exit("VLANS: %s uses 'auto' but %s has no IPv4 address" % (name, trunk))
-            addr = host
         iface = trunk
-    else:
         if addr == "auto":
-            sys.exit("VLANS: %s (VLAN %d) needs a static IP/prefix, e.g. 192.168.66.2/24" % (name, vid))
+            if not trunk_v4:
+                sys.exit("VLANS: %s uses 'auto' but %s has no IPv4 address; give a static IP/prefix" % (name, trunk))
+            addr, origin = trunk_v4[0], "have"
+        elif addr in trunk_v4 and addr not in our_addrs:
+            origin = "have"
+    elif vid in existing and existing[vid][0] not in our_ifaces:
+        iface, have = existing[vid]
+        if not have:
+            sys.exit("VLANS: VLAN %d exists as %s (configured outside this script) but has no IPv4 address" % (vid, iface))
+        if addr not in ("auto", have):
+            sys.exit("VLANS: VLAN %d already exists as %s with %s (configured outside this script); use 'auto' "
+                     "or change it in your own netplan file" % (vid, iface, have))
+        addr, origin = have, "have"
+    else:
         iface = "vlan%d" % vid
+        if addr == "auto":
+            sys.exit("VLANS: %s (VLAN %d) is not on this VM yet; give this VM's static IP/prefix, e.g. 172.16.12.2/23"
+                     % (name, vid))
     try:
-        itf = ipaddress.ip_interface(addr)
+        itf = ipaddress.IPv4Interface(addr)
     except ValueError:
-        sys.exit("VLANS: bad address %r for %s (use IP/prefix)" % (addr, name))
-    if itf.version != 4 or itf.network.prefixlen > 30 or itf.ip in (itf.network.network_address, itf.network.broadcast_address):
-        sys.exit("VLANS: %s must be a usable IPv4 host address with a prefix of /30 or shorter" % addr)
-    for n, other in nets:
-        if itf.network.overlaps(other):
-            sys.exit("VLANS: %s overlaps %s" % (itf.network, n))
-    nets.append((name, itf.network))
-    print(name, vid, iface, itf.with_prefixlen, itf.network, mode)
+        sys.exit("VLANS: bad address %r for %s (use IPv4/prefix, e.g. 172.16.12.2/23)" % (addr, name))
+    n = itf.network
+    if not 8 <= n.prefixlen <= 30:
+        sys.exit("VLANS: %s: prefix /%d - use /8 to /30" % (addr, n.prefixlen))
+    if itf.ip in (n.network_address, n.broadcast_address):
+        sys.exit("VLANS: %s is the %s address of %s - use a host address such as %s/%d"
+                 % (itf.ip, "network" if itf.ip == n.network_address else "broadcast", n, n.network_address + 2, n.prefixlen))
+    for other_name, other in nets:
+        if n.overlaps(other):
+            sys.exit("VLANS: %s (%s) overlaps %s (%s)" % (n, name, other, other_name))
+    nets.append((name, n))
+    mode = parts[3] if len(parts) >= 4 and parts[3] else ("full" if iface in mgmt else "dns-only")
+    if mode not in ("full", "dns-only"):
+        sys.exit("VLANS: access for %s must be full or dns-only" % name)
+    if mode == "dns-only" and iface in mgmt:
+        sys.exit("VLANS: %s: dns-only on %s would cut off your access (default route / SSH session); use full" % (name, iface))
+    profile = (parts[4] if len(parts) == 5 and parts[4] else guess_profile(name)).lower()
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,30}", profile):
+        sys.exit("VLANS: bad list profile %r for %s" % (profile, name))
+    out.append((name, vid, iface, itf.with_prefixlen, n, mode, profile, origin))
+# other routes on this VM (Docker networks, VPNs) that overlap a VLAN subnet would hijack its replies
+ifaces = {o[2] for o in out}
+for line in routes.splitlines():
+    f = line.split()
+    if not f or f[0] == "default" or "dev" not in f:
+        continue
+    dev = f[f.index("dev") + 1]
+    try:
+        dst = ipaddress.ip_network(f[0], strict=False)
+    except ValueError:
+        continue
+    for o in out:
+        if dev not in ifaces and dst.overlaps(o[4]):
+            print("WARNING: %s (%s) overlaps route %s on %s - replies to %s may go the wrong way"
+                  % (o[4], o[0], dst, dev, o[0]), file=sys.stderr)
+for o in out:
+    print(*o)
 PY
 ) || die "Fix VLANS and re-run."
-GROUP_MAP=""; TAGGED=0; DNS_ONLY_IFS=""
-while read -r name vid iface addr net mode; do
-  printf '  %-8s VLAN %-4s %-8s %-18s subnet %-18s %s\n' "$name" "$vid" "$iface" "$addr" "$net" "$mode"
-  GROUP_MAP+="${GROUP_MAP:+,}${name}=${net}"
-  [[ "$vid" != 0 ]] && TAGGED=$((TAGGED + 1))
-  if [[ "$mode" == dns-only ]]; then
-    [[ "$vid" == 0 ]] && die "${name}: dns-only on the untagged VLAN would cut off your SSH/web access; use full."
-    DNS_ONLY_IFS+=" ${iface}"
-  fi
+GROUP_MAP=""; WRITE=0; DNS_ONLY_IFS=""; TAG_IDS=""
+while read -r name vid iface addr net mode profile origin; do
+  printf '  %-14s VLAN %-4s %-10s %-18s subnet %-18s %-8s lists:%-6s %s\n' "$name" "$vid" "$iface" "$addr" "$net" "$mode" "$profile" \
+    "$([[ $origin == have ]] && echo "(existing)" || echo "(added by this script)")"
+  GROUP_MAP+="${GROUP_MAP:+,}${name}=${net}@${profile}"
+  [[ "$origin" == add ]] && WRITE=$((WRITE + 1))
+  [[ "$vid" != 0 ]] && TAG_IDS+="${TAG_IDS:+;}${vid}"
+  [[ "$mode" == dns-only ]] && DNS_ONLY_IFS+=" ${iface}"
 done <<<"${PARSED}"
 DNS_ONLY_IFS="${DNS_ONLY_IFS# }"
+if [[ -n "${TAG_IDS}" ]]; then
+  case "$HV" in
+    proxmox) info "Proxmox: tagged VLANs to pass to this VM: ${TAG_IDS//;/, } (optional filter: qm set <vmid> -net0 virtio=<MAC>,bridge=vmbr0,trunks=\"${TAG_IDS}\")" ;;
+    vmware)  info "VMware: the port group must pass VLANs ${TAG_IDS//;/, } (4095 / VLAN trunking)." ;;
+  esac
+fi
 
 # =============================================================
-# 3. VLAN sub-interfaces (netplan)
+# 3. VLAN interfaces (netplan)
 # =============================================================
 section "VLAN interfaces (netplan)"
-if (( TAGGED == 0 )); then
-  info "No tagged VLANs; nothing to add."
+if (( WRITE == 0 )); then
+  info "Nothing to add: every VLAN interface/address already exists."
+  if [[ -f "${NETPLAN_FILE}" ]] && ! dry; then
+    info "Removing ${NETPLAN_FILE} (no longer needed) and applying netplan..."
+    rm -f "${NETPLAN_FILE}"; netplan apply || warn "netplan apply failed."
+  fi
 else
   command -v netplan >/dev/null || die "netplan not found (Ubuntu uses netplan). Add the VLAN interfaces by hand, then re-run."
   # netplan id of the trunk NIC (usually its name). A definition we do not know about
@@ -341,15 +539,23 @@ PY
 )
   [[ -n "${LINK_ID}" ]] || dry || die "${TRUNK_IF} is not defined in /etc/netplan/*.yaml; add the VLAN interfaces by hand (netplan 'vlans:'), then re-run."
   LINK_ID="${LINK_ID:-${TRUNK_IF}}"
+  UNTAGGED_ADD=$(awk '$2==0 && $8=="add" {print $4}' <<<"${PARSED}")
   NP=$( {
     echo "# Generated by managed_pihole deploy_multi_pi.sh ${SCRIPT_VERSION} - re-running the script rewrites it."
-    echo "# Tagged VLANs on the trunk ${TRUNK_IF}: static address, no gateway, no IPv6."
+    echo "# VLANs on the trunk ${TRUNK_IF}: static address, no gateway, no IPv6. Interfaces configured"
+    echo "# elsewhere (your own netplan files) are not repeated here."
     echo "network:"
     echo "  version: 2"
-    echo "  vlans:"
-    while read -r name vid iface addr net mode; do
-      [[ "$vid" == 0 ]] && continue
-      cat <<EOF
+    if [[ -n "${UNTAGGED_ADD}" ]]; then
+      echo "  ethernets:"
+      echo "    ${LINK_ID}:              # untagged VLAN: extra address (netplan adds it to your own config)"
+      echo "      addresses: [${UNTAGGED_ADD}]"
+    fi
+    if awk '$2!=0 && $8=="add" {f=1} END {exit !f}' <<<"${PARSED}"; then
+      echo "  vlans:"
+      while read -r name vid iface addr net mode profile origin; do
+        [[ "$vid" == 0 || "$origin" != add ]] && continue
+        cat <<EOF
     ${iface}:              # ${name}
       id: ${vid}
       link: ${LINK_ID}
@@ -359,15 +565,19 @@ PY
       accept-ra: false
       link-local: []
 EOF
-    done <<<"${PARSED}"
+      done <<<"${PARSED}"
+    fi
   } )
   OLD_NP=""; [[ -f "${NETPLAN_FILE}" ]] && OLD_NP=$(cat "${NETPLAN_FILE}")
   missing=false   # file unchanged but an interface is down / lost its address -> apply anyway
-  while read -r name vid iface addr net mode; do
-    [[ "$vid" == 0 ]] && continue
+  while read -r name vid iface addr net mode profile origin; do
+    [[ "$origin" == add ]] || continue
     ip -4 addr show dev "$iface" 2>/dev/null | grep -q " ${addr%/*}/" || missing=true
   done <<<"${PARSED}"
-  if { [[ "$(put_file "${NETPLAN_FILE}" 600 <<<"${NP}")" == changed ]] || $missing; } && ! dry; then
+  np_state=$(put_file "${NETPLAN_FILE}" 600 <<<"${NP}")
+  if dry; then
+    [[ "${np_state}" == changed ]] && info "Would write ${NETPLAN_FILE} and run netplan apply." || ok "VLAN interfaces already configured."
+  elif [[ "${np_state}" == changed ]] || $missing; then
     info "Applying netplan (the network may blip for a second)..."
     if netplan generate && netplan apply; then
       ok "netplan applied (${NETPLAN_FILE})"
@@ -381,8 +591,8 @@ EOF
     ok "VLAN interfaces already configured."
   fi
   if ! dry; then
-    while read -r name vid iface addr net mode; do
-      [[ "$vid" == 0 ]] && continue
+    while read -r name vid iface addr net mode profile origin; do
+      [[ "$origin" == add ]] || continue
       for ((i = 0; i < 10; i++)); do ip -4 addr show dev "$iface" 2>/dev/null | grep -q " ${addr%/*}/" && break; sleep 1; done
       ip -4 addr show dev "$iface" 2>/dev/null | grep -q " ${addr%/*}/" \
         && ok "${iface} (${name}) is up with ${addr}" || warn "${iface} does not have ${addr} yet - check: ip addr show ${iface}"
@@ -585,7 +795,7 @@ else
     echo "# put permanent changes in the environment of the run (e.g. sudo ALERT_BLOCKED_PCT_IOT=80 bash deploy_multi_pi.sh)."
     echo "ALERT_STATE_FILE=/var/lib/${MCP_USER}/vlan_alerts.json"
     [[ -n "${ALERT_WEBHOOK}" ]] && echo "ALERT_WEBHOOK=${ALERT_WEBHOOK}"
-    while read -r name vid iface addr net mode; do
+    while read -r name vid iface addr net mode profile origin; do
       u=$(tr '[:lower:]-' '[:upper:]_' <<<"$name")
       if [[ "$mode" == full ]]; then
         echo "ALERT_BLOCKED_PCT_${u}=70"; echo "ALERT_NXDOMAIN_PCT_${u}=40"; echo "ALERT_QUERIES_PER_HOUR_${u}=6000"
@@ -663,20 +873,22 @@ fi
 # Summary
 # =============================================================
 section "Done"
-HOST_IP=$(awk '$2==0 {print $4}' <<<"${PARSED}" | cut -d/ -f1)
+HOST_IP=$(awk -v m=" ${MGMT_IFS} " 'index(m, " "$3" ") {print $4; exit}' <<<"${PARSED}" | cut -d/ -f1)
+HOST_IP="${HOST_IP:-$(awk '$6=="full" {print $4; exit}' <<<"${PARSED}" | cut -d/ -f1)}"
 cat <<EOF
   Pi-hole admin     : http://${HOST_IP:-<vm-ip>}/admin   (password: ${PIHOLE_BASE}/secrets/pihole_password.txt)
   Per-VLAN DNS server (set it as the ONLY DNS server in each VLAN's DHCP on your router):
 EOF
-while read -r name vid iface addr net mode; do
-  printf '    %-8s VLAN %-4s -> DNS %-15s (%s, group "%s", %s)\n' "$name" "$vid" "${addr%/*}" "$net" "$name" "$mode"
+while read -r name vid iface addr net mode profile origin; do
+  printf '    %-14s VLAN %-4s -> DNS %-15s (%s, %s, lists: %s)\n' "$name" "$vid" "${addr%/*}" "$net" "$mode" "$profile"
 done <<<"${PARSED}"
 cat <<EOF
 
-  Lists             : every VLAN gets the normal managed lists; a group also gets
-                      ${VLAN_DIR}/group_<name>_*.txt (+ your *.local.txt). Re-synced daily.
-                      Unblock something for IoT only: echo domain >> ${VLAN_DIR}/group_iot_allow.local.txt
-                      then: sudo ${VLAN_DIR}/vlan-sync.sh --no-fetch
+  Lists             : every VLAN gets the normal managed lists, plus its profile's
+                      ${VLAN_DIR}/group_<profile>_*.txt and group_<name>_*.txt (+ your *.local.txt).
+                      Re-synced daily. Unblock something for one VLAN only, e.g. IoT:
+                        echo domain >> ${VLAN_DIR}/group_iot_allow.local.txt
+                        sudo ${VLAN_DIR}/vlan-sync.sh --no-fetch
   See each VLAN     : sudo dns-vlan-report --hours 24      (or --vlan IoT, --client <ip>)
                       Pi-hole UI: Query Log, filter by client; Group Management shows the groups
   AI agent (MCP)    : claude mcp add dns -- ssh ${MCP_USER}@${HOST_IP:-<vm-ip>}

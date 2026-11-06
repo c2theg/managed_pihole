@@ -1,0 +1,15 @@
+# group_guest_blocklists.txt - EXTRA block lists for VLANs with the "guest" profile
+# Version: 0.1.0 | Updated: 11/5/2026 | Claude Code (Anthropic) - Claude Opus 5.5 (claude-opus-5-5)
+#
+# Applied by upsert_vlan_groups.py (deploy_multi_pi.sh) to every VLAN whose profile is
+# "guest", ON TOP of the normal lists. Visitors' devices: block what is harmful, not what
+# they may need (their work VPN etc. keeps working). Add your own in
+# group_guest_blocklists.local.txt.
+# HaGeZi DNS blocklists, Adblock format - checked 11/5/2026 (HTTP 200).
+
+# --- Malware / phishing / scams ---
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/tif.medium.txt
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/fake.txt
+
+# --- Adult content (a guest network is often shared with visitors' children) ---
+https://raw.githubusercontent.com/hagezi/dns-blocklists/main/adblock/nsfw.txt

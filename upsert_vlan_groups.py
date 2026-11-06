@@ -6,11 +6,11 @@
 #
 #  upsert_vlan_groups.py  -  one Pi-hole v6 group per VLAN, each with its own lists
 #
-#  Version:       1.0.0
+#  Version:       1.1.0
 #  Last Updated:  11/5/2026
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #
-#  For every VLAN "Name=subnet":
+#  For every VLAN "Name=subnet[@profile]":
 #    - group "Name"                     (created if missing)
 #    - client "subnet" -> Default + Name (every device in that VLAN)
 #    - extra entries for that group only, from these files (all optional, lower-case name):
@@ -21,6 +21,9 @@
 #        group_<name>_regex_allow.txt    regex allow
 #      plus your own additions in the same names ending in .local.txt
 #      (never downloaded or overwritten).
+#    - "@profile" (optional) also loads group_<profile>_*.txt, so several VLANs can share
+#      a list set: "Cams=10.0.9.0/24@iot". Shipped profiles: iot, kids, guest.
+#      "@none" = only group_<name>_*.txt. No @ = profile with the VLAN's own name.
 #  Default-group lists (cgray_blocklists.txt etc.) still apply to every VLAN; the group
 #  files ADD to them. So "IoT blocks a lot more than Users" = group_iot_*.txt.
 #
@@ -30,13 +33,15 @@
 #  Runs gravity only when block lists were added.
 #
 #  Usage:
-#    ./upsert_vlan_groups.py --vlans "Users=192.168.1.0/24,IoT=192.168.66.0/24"
+#    ./upsert_vlan_groups.py --vlans "Users=192.168.1.0/24,IoT=172.16.12.0/23,Kids=192.168.5.0/24@kids"
 #    ./upsert_vlan_groups.py --vlans ... --fetch https://raw.githubusercontent.com/c2theg/managed_pihole/main
 #    ./upsert_vlan_groups.py --vlans ... --dry-run
 #  Settings: PIHOLE_API_URL / PIHOLE_PASSWORD (see pihole_api.py). Needs the web
 #  (admin) password: app passwords cannot change groups' lists.
 #
 #  ChangeLog:
+#    1.1.0  11/5/2026  "@profile" per VLAN (shared list sets: iot, kids, guest); the name
+#                      "Default" is refused (it is Pi-hole's built-in group). (Claude Code)
 #    1.0.0  11/5/2026  New file (Claude Code). Used by deploy_multi_pi.sh.
 #-------------------------------------------------------------------------------
 import argparse
@@ -50,7 +55,7 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pihole_api import PiholeAPI, PiholeAPIError, read_list_file  # noqa: E402
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 TAG = "managed_pihole vlan"
 KINDS = [  # file suffix, API collection path, label
     ("blocklists", "/lists?type=block", "block lists"),
@@ -62,20 +67,30 @@ KINDS = [  # file suffix, API collection path, label
 
 
 def parse_vlans(raw):
+    """-> [(name, cidr, [file prefixes])]"""
     out = []
     for item in raw.replace(";", ",").split(","):
         if not item.strip():
             continue
         if "=" not in item:
-            sys.exit("--vlans: expected Name=subnet, got %r" % item)
-        name, cidr = (x.strip() for x in item.split("=", 1))
-        if not name or any(c in name for c in " ,;=/"):
+            sys.exit("--vlans: expected Name=subnet[@profile], got %r" % item)
+        name, rest = (x.strip() for x in item.split("=", 1))
+        cidr, _, profile = rest.partition("@")
+        if not name or any(c in name for c in " ,;=/@"):
             sys.exit("--vlans: bad group name %r" % name)
+        if name.lower() == "default":
+            sys.exit("--vlans: 'Default' is Pi-hole's built-in group (every client is in it); use another name")
         try:
-            net = ipaddress.ip_network(cidr, strict=False)
+            net = ipaddress.ip_network(cidr.strip(), strict=False)
         except ValueError:
             sys.exit("--vlans: bad subnet %r" % cidr)
-        out.append((name, str(net)))
+        profile = profile.strip().lower()
+        if profile and not all(c.isalnum() or c in "_-" for c in profile):
+            sys.exit("--vlans: bad profile %r" % profile)
+        prefixes = [] if profile == "none" else [profile or name.lower()]
+        if name.lower() not in prefixes:
+            prefixes.append(name.lower())
+        out.append((name, str(net), prefixes))
     return out
 
 
@@ -97,16 +112,17 @@ def fetch(base, dirpath, fname):
     return "ok"
 
 
-def wanted_entries(dirpath, name, suffix):
-    base = "group_%s_%s" % (name.lower(), suffix)
+def wanted_entries(dirpath, prefixes, suffix):
     out = []
-    for f in (base + ".txt", base + ".local.txt"):
-        p = os.path.join(dirpath, f)
-        if os.path.exists(p):
-            for e in read_list_file(p):
-                e = e.split()[0] if suffix == "blocklists" else e
-                if e not in out:
-                    out.append(e)
+    for prefix in prefixes:
+        base = "group_%s_%s" % (prefix, suffix)
+        for f in (base + ".txt", base + ".local.txt"):
+            p = os.path.join(dirpath, f)
+            if os.path.exists(p):
+                for e in read_list_file(p):
+                    e = e.split()[0] if suffix == "blocklists" else e
+                    if e not in out:
+                        out.append(e)
     return out
 
 
@@ -210,7 +226,7 @@ class Sync:
 
 def main():
     ap = argparse.ArgumentParser(description="One Pi-hole v6 group per VLAN, each with its own lists")
-    ap.add_argument("--vlans", required=True, help='"Users=192.168.1.0/24,IoT=192.168.66.0/24"')
+    ap.add_argument("--vlans", required=True, help='"Users=192.168.1.0/24,IoT=172.16.12.0/23@iot"')
     ap.add_argument("--dir", default=os.path.dirname(os.path.abspath(__file__)), help="folder with group_*.txt")
     ap.add_argument("--fetch", metavar="BASE_URL", help="download group_<name>_*.txt from this repo URL first")
     ap.add_argument("--dry-run", action="store_true")
@@ -219,9 +235,9 @@ def main():
     vlans = parse_vlans(args.vlans)
     if args.fetch:
         print("Downloading group files from %s" % args.fetch)
-        for name, _ in vlans:
+        for prefix in sorted({p for _, _, ps in vlans for p in ps}):
             for suffix, _, _ in KINDS:
-                fname = "group_%s_%s.txt" % (name.lower(), suffix)
+                fname = "group_%s_%s.txt" % (prefix, suffix)
                 st = fetch(args.fetch, args.dir, fname)
                 if st != "absent":
                     print("  %-40s %s" % (fname, st))
@@ -230,11 +246,12 @@ def main():
             s = Sync(api, args.dry_run)
             gids = {}
             print("\nGroups and VLAN subnets")
-            for name, cidr in vlans:
+            for name, cidr, prefixes in vlans:
+                print("  %s %s  (lists: %s)" % (name, cidr, ", ".join("group_%s_*" % p for p in prefixes)))
                 gids[name] = s.ensure_group(name, cidr)
                 s.ensure_client(cidr, gids[name], name)
             # subnet clients this tool created that are no longer a VLAN (subnet changed / VLAN removed)
-            wanted = {cidr for _, cidr in vlans}
+            wanted = {cidr for _, cidr, _ in vlans}
             for c in s.call("GET", "/clients").get("clients", []):
                 if str(c.get("comment") or "").startswith(TAG) and c.get("client") not in wanted:
                     print("  - client %s (no longer a VLAN subnet)" % c["client"])
@@ -243,10 +260,10 @@ def main():
             our_gids = {g["id"] for g in s.groups().values() if str(g.get("comment") or "").startswith(TAG)}
             our_gids |= {g for g in gids.values() if g is not None}
             for suffix, path, label in KINDS:
-                want = {gids[n]: wanted_entries(args.dir, n, suffix) for n, _ in vlans if gids[n] is not None}
+                want = {gids[n]: wanted_entries(args.dir, ps, suffix) for n, _, ps in vlans if gids[n] is not None}
                 total = sum(len(v) for v in want.values())
                 print("\n%s: %s" % (label.capitalize(), ", ".join("%s %d" % (n, len(want.get(gids[n], [])))
-                                                                 for n, _ in vlans) or "none"))
+                                                                 for n, _, _ in vlans) or "none"))
                 added = s.sync_kind(path, label, want, our_gids)
                 if suffix == "blocklists":
                     s.lists_added = added

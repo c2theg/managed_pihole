@@ -2,7 +2,7 @@
 
 Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuard Home**, with **Unbound** as the recursive, DNSSEC-validating upstream. Each one works on a **native OS install** or in **Docker**.
 
-- **Version:** 1.4.0
+- **Version:** 1.4.1
 - **Last updated:** 11/5/2026
 - **Updated by:** Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)
 - **Pi-hole docs:** https://docs.pi-hole.net/main/post-install/
@@ -26,10 +26,11 @@ Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuar
 | `upsert_adguardhome.py` | 1.0.0 | *New.* Applies the same lists to **AdGuard Home** through its API (native or Docker) |
 | `setup_unbound.sh` | 1.1.0 | *New.* Native **Unbound** on 127.0.0.1:5335 (Pi-hole guide), then points Pi-hole or AdGuard Home at it |
 | `mcp_server.py` | 1.1.0 | *New.* Read-only **MCP server**: AI agents can read Pi-hole / AdGuard Home / Unbound stats, per VLAN too ([below](#ai-agent-access-mcp-server)) |
-| `deploy_multi_pi.sh` | 1.0.0 | *New.* One Pi-hole for several VLANs (trunk): per-VLAN groups and lists, dns-only firewall, per-VLAN monitoring and alerts ([below](#several-vlans-one-pi-hole-deploy_multi_pish)) |
-| `upsert_vlan_groups.py` | 1.0.0 | *New.* One Pi-hole group per VLAN subnet, each with its own lists (`group_<name>_*.txt`) |
+| `deploy_multi_pi.sh` | 1.1.0 | *New.* One Pi-hole for several VLANs (trunk): per-VLAN groups and lists, dns-only firewall, per-VLAN monitoring and alerts ([below](#several-vlans-one-pi-hole-deploy_multi_pish)) |
+| `upsert_vlan_groups.py` | 1.1.0 | *New.* One Pi-hole group per VLAN subnet, each with its own lists (`group_<profile>_*.txt`) |
 | `vlan_report.py` | 1.0.0 | *New.* Per-VLAN / per-device DNS report and alerts (threat hits, floods, DNS bypass, NXDOMAIN) |
-| `group_iot_blocklists.txt`, `group_iot_regex_deny.txt` | 0.1.0 | *New.* Extra lists for the IoT group only |
+| `group_iot_blocklists.txt`, `group_iot_regex_deny.txt` | 0.1.0 | *New.* Extra lists for VLANs with the `iot` profile |
+| `group_kids_blocklists.txt`, `group_guest_blocklists.txt` | 0.1.0 | *New.* Extra lists for the `kids` and `guest` profiles |
 | `install_pihole.sh` | 6.4.0 | Docker stack installer: Pi-hole **or** AdGuard Home → Unbound → dnscrypt-proxy (+ WireGuard), with daily list sync |
 | `cgray_blocklists.txt` | 0.6.1 | Subscribed block-list URLs: all Firebog "ticked" lists plus every list in this repo |
 | `blocklist_regexs_cg.txt` | 0.1.0 | Regex deny |
@@ -226,11 +227,15 @@ On Docker, prefix commands with `docker exec pihole`, e.g. `docker exec pihole p
 One Pi-hole serves every VLAN of a trunk. Each VLAN is a Pi-hole **group** with its own lists, and has its own DNS address on the VM. You can see what's happening on each VLAN, and you get alerts when a device misbehaves. It works on Proxmox and VMware, and the VLANs arrive as a trunk on the VM's single NIC.
 
 ```
-trunk (ens18) ──┬─ untagged (VLAN 0)  Users  192.168.1.10/24   (the VM's normal address)
-                └─ vlan666 (tag 666)  IoT    192.168.66.2/24   (added by the script)
-Pi-hole groups:  Users = 192.168.1.0/24  → normal lists
-                 IoT   = 192.168.66.0/24 → normal lists + group_iot_*.txt (much stricter)
+trunk (ens18) ──┬─ untagged          LAN      10.11.1.2/24     (added, or the VM's own address)
+                ├─ vlan200 (exists)  Servers  10.13.1.35/24    (management: kept as is, full access)
+                ├─ vlan666           IoT      172.16.12.2/23   (added)  dns-only, lists: iot
+                ├─ vlan2             Kids     192.168.5.2/24   (added)  dns-only, lists: kids
+                └─ vlan20            Guest    192.168.13.2/24  (added)  dns-only, lists: guest
+Pi-hole: one group per VLAN, its subnet as the client → normal lists + group_<profile>_*.txt
 ```
+
+Any number of VLANs and any subnet size from /8 to /30 (/24, /23, /22, ...).
 
 ```sh
 git clone https://github.com/c2theg/managed_pihole.git && cd managed_pihole
@@ -238,30 +243,44 @@ sudo bash deploy_multi_pi.sh
 ```
 
 **What it asks you:**
-- the trunk interface
-- a name for the untagged VLAN
-- for each tagged VLAN: its ID, a name, this VM's IP/prefix on it, `dns-only` or `full`, and its router (used for device names)
+- the trunk interface. It suggests the right one even when your default route is on a VLAN interface (e.g. `vlan200@ens18` → `ens18`).
+- the untagged (native) VLAN: serve DNS there? If the VM has no IPv4 address on it yet, it can add one.
+- each VLAN interface already on the VM (e.g. `vlan200`): serve DNS there? Its address is kept as is.
+- then any number of new tagged VLANs: ID and this VM's IP/prefix
+- for every VLAN: a group name, access (`dns-only` or `full`), extra lists (`none`, `iot`, `kids`, `guest` or your own), and its router (used for device names)
 - an alert webhook
+
+Wrong answers are explained and asked again, for example "172.16.12.0 is the NETWORK address of 172.16.12.0/23 … e.g. 172.16.12.2/23", overlapping subnets, or a VLAN that already exists. `Default` can't be used as a name, because it is Pi-hole's built-in group.
 
 It then:
 1. **Hypervisor:** detects Proxmox/KVM or VMware and prints what to set there:
    - Proxmox: "VLAN aware" bridge, and an empty VLAN tag on the VM's NIC.
    - VMware: port group VLAN 4095 or VLAN trunking.
    - No promiscuous mode or MAC spoofing is needed, because every VLAN uses the VM's own MAC.
-2. **VLAN interfaces:** adds one netplan VLAN interface per tag: static address, no gateway, no IPv6. Your existing network config is not touched.
+2. **VLAN interfaces:** adds the missing ones in `/etc/netplan/60-managed-pihole-vlans.yaml` (static address, no gateway, no IPv6). VLAN interfaces you already have are left alone, and your own netplan files are not touched. Subnets that overlap another route on the VM (e.g. a Docker network) get a warning.
 3. **Docker stack:** runs `install_pihole.sh` (Pi-hole, Unbound, dnscrypt-proxy, managed lists, MCP server) unless it is already installed.
 4. **Groups:** with `upsert_vlan_groups.py`, creates a group per VLAN and adds the VLAN subnet as a client (Default + group). It assigns that group's lists, then re-syncs them daily.
-5. **`dns-only` VLANs** (IoT by default): the VM answers DNS and ping there, and refuses everything else, including the web UI, SSH, routing through the VM, and IPv6.
+5. **`dns-only` VLANs** (default for every VLAN except the one you manage the VM through: the default route or your SSH session, which is always `full`): the VM answers DNS and ping there, and refuses everything else, including the web UI, SSH, routing through the VM, and IPv6.
 6. **Monitoring:**
    - `sudo dns-vlan-report`
    - the MCP tools `pihole_vlan_report`, `pihole_client_report` and `pihole_groups`
    - alerts every 15 minutes, written to `journalctl -u dns-vlan-alerts` and, if set, `ALERT_WEBHOOK` (ntfy, Slack, Discord, or any URL)
 
-To skip the questions: `sudo VLANS="Users:0:auto IoT:666:192.168.66.2/24" ROUTERS="Users=192.168.1.1 IoT=192.168.66.1" bash deploy_multi_pi.sh`. `DRY_RUN=true` previews the changes. Re-runs offer the saved setup (`/opt/pihole/multi_pi.conf`) and only change what differs.
+To skip the questions: `sudo VLANS="Servers:200:auto:full IoT:666:172.16.12.2/23:dns-only:iot Kids:2:192.168.5.2/24::kids" ROUTERS="Servers=10.13.1.1 IoT=172.16.12.1" bash deploy_multi_pi.sh`. The format is `NAME:VLAN_ID:ADDRESS[:ACCESS[:LISTS]]`: VLAN ID 0 = untagged, `auto` = the address the VM already has there. `DRY_RUN=true` previews the changes. Re-runs offer the saved setup (`/opt/pihole/multi_pi.conf`) and only change what differs.
 
-**Lists per VLAN.** Every VLAN gets the normal managed lists. A group adds its own files:
+**Lists per VLAN.** Every VLAN gets the normal managed lists, plus the files of its list **profile**. Several VLANs can share one profile, and each list is downloaded only once.
 
-| File (`<name>` = group name in lower case) | What it adds for that VLAN only |
+| Profile | Adds |
+|---|---|
+| `none` | nothing (people, servers) |
+| `iot` | strict: threat intel, Pro++, vendor telemetry, DoH/VPN bypass, dynamic DNS, URL shorteners, plus 4 regexes |
+| `kids` | adult content, gambling, threat intel, scams, DoH/VPN bypass (social networks optional, in the file) |
+| `guest` | threat intel, scams, adult content |
+| your own name | your `group_<profile>_*.local.txt` files |
+
+The files (`<profile>`, and also the VLAN's own `<name>`, both in lower case):
+
+| File | What it adds for that VLAN only |
 |---|---|
 | `group_<name>_blocklists.txt` | Block-list URLs |
 | `group_<name>_regex_deny.txt`, `group_<name>_deny.txt` | Regex / exact deny |
