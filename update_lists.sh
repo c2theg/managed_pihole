@@ -20,8 +20,8 @@ Current working dir: $SCRIPTPATH
 |_____|_|_|_| |_|___|_| |___|  _|_|_|___|_|    |_|_|_|_____|  |_____|_| |__,|_  |
                             |_|                                             |___|
 
-Version:       1.0.1
-Last Updated:  11/5/2026
+Version:       1.0.2
+Last Updated:  11/6/2026
 Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 "
 #-------------------------------------------------------------------------------
@@ -29,7 +29,8 @@ Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5
 #  managed_pihole lists:
 #    1. checks Internet access
 #    2. updates the OS packages (skip with SKIP_OS_UPDATE=1)
-#    3. backs up Pi-hole (Teleporter + databases) with backup_dbs.py
+#    3. backs up Pi-hole (Teleporter + databases), Unbound and AdGuard Home config
+#       with backup_dbs.py, into <backup folder>/pre-update (newest 1 kept)
 #    4. downloads the latest managed_pihole files into this folder (skip: SKIP_DOWNLOAD=1)
 #    5. updates Pi-hole  (native: pihole -up | docker: docker compose pull/up, needs
 #       PIHOLE_COMPOSE_DIR)  (skip with SKIP_PIHOLE_UPDATE=1)
@@ -45,6 +46,9 @@ Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5
 #                         (default https://raw.githubusercontent.com/c2theg/managed_pihole/main)
 #
 #  ChangeLog:
+#    1.0.2  11/6/2026  (Claude Code) The pre-update backup also covers Unbound and AdGuard
+#                      Home (backup_dbs.py 2.0.0), and goes to <backup folder>/pre-update
+#                      (keep 1) so the daily 03:00 backups keep their own rotation of 4.
 #    1.0.1  11/5/2026  (Claude Code) Also downloads mcp_server.py, vlan_report.py,
 #                      upsert_vlan_groups.py and the group_*.txt lists (iot, kids, guest).
 #    1.0.0  11/5/2026  (Claude Code) Updated for Pi-hole v6 and Docker:
@@ -113,10 +117,12 @@ if [ "${SKIP_OS_UPDATE:-0}" != "1" ] && command -v apt-get > /dev/null 2>&1; the
     $SUDO apt-get autoclean
 fi
 
-#--- Backup (Pi-hole) ---
-if [ "$DNS_FILTER" != "adguardhome" ] && [ -f "$SCRIPTPATH/backup_dbs.py" ] && command -v python3 > /dev/null 2>&1; then
-    echo "Backing up pihole... "
-    python3 "$SCRIPTPATH/backup_dbs.py" --keep 7 || echo "WARNING: backup had errors - continuing."
+#--- Backup before changing anything (Pi-hole / AdGuard Home / Unbound config) ---
+# Kept apart in <backup folder>/pre-update (newest 1 only), so it does not push the daily
+# backups (backup_dbs.py --install-timer) out of their rotation.
+if [ -f "$SCRIPTPATH/backup_dbs.py" ] && command -v python3 > /dev/null 2>&1; then
+    echo "Backing up config before the update... "
+    python3 "$SCRIPTPATH/backup_dbs.py" --subdir pre-update --keep 1 || echo "WARNING: backup had errors - continuing."
 fi
 
 #--- Download latest versions ---

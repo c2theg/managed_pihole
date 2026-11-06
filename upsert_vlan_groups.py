@@ -6,8 +6,8 @@
 #
 #  upsert_vlan_groups.py  -  one Pi-hole v6 group per VLAN, each with its own lists
 #
-#  Version:       1.1.0
-#  Last Updated:  11/5/2026
+#  Version:       1.2.0
+#  Last Updated:  11/6/2026
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #
 #  For every VLAN "Name=subnet[@profile]":
@@ -24,6 +24,10 @@
 #    - "@profile" (optional) also loads group_<profile>_*.txt, so several VLANs can share
 #      a list set: "Cams=10.0.9.0/24@iot". Shipped profiles: iot, kids, guest.
 #      "@none" = only group_<name>_*.txt. No @ = profile with the VLAN's own name.
+#    - a VLAN can have several subnets: repeat it ("IoT=172.16.12.0/23@iot,IoT=fd13:1::/64@iot")
+#    - --v6-from "IoT=vlan666,Users=ens18": also the IPv6 prefixes those interfaces have right
+#      now (from router advertisements), so IPv6 devices land in their VLAN's group too.
+#      Prefixes that went away (e.g. a new ISP prefix) are removed on the next run.
 #  Default-group lists (cgray_blocklists.txt etc.) still apply to every VLAN; the group
 #  files ADD to them. So "IoT blocks a lot more than Users" = group_iot_*.txt.
 #
@@ -35,18 +39,22 @@
 #  Usage:
 #    ./upsert_vlan_groups.py --vlans "Users=192.168.1.0/24,IoT=172.16.12.0/23,Kids=192.168.5.0/24@kids"
 #    ./upsert_vlan_groups.py --vlans ... --fetch https://raw.githubusercontent.com/c2theg/managed_pihole/main
+#    ./upsert_vlan_groups.py --vlans ... --v6-from "IoT=vlan666,Kids=vlan2"
 #    ./upsert_vlan_groups.py --vlans ... --dry-run
 #  Settings: PIHOLE_API_URL / PIHOLE_PASSWORD (see pihole_api.py). Needs the web
 #  (admin) password: app passwords cannot change groups' lists.
 #
 #  ChangeLog:
+#    1.2.0  11/6/2026  IPv6: several subnets per VLAN, --v6-from IFACE prefixes. (Claude Code)
 #    1.1.0  11/5/2026  "@profile" per VLAN (shared list sets: iot, kids, guest); the name
 #                      "Default" is refused (it is Pi-hole's built-in group). (Claude Code)
 #    1.0.0  11/5/2026  New file (Claude Code). Used by deploy_multi_pi.sh.
 #-------------------------------------------------------------------------------
 import argparse
 import ipaddress
+import json
 import os
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -55,7 +63,7 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pihole_api import PiholeAPI, PiholeAPIError, read_list_file  # noqa: E402
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 TAG = "managed_pihole vlan"
 KINDS = [  # file suffix, API collection path, label
     ("blocklists", "/lists?type=block", "block lists"),
@@ -91,6 +99,48 @@ def parse_vlans(raw):
         if name.lower() not in prefixes:
             prefixes.append(name.lower())
         out.append((name, str(net), prefixes))
+    return out
+
+
+def v6_prefixes(iface):
+    """Global IPv6 prefixes (ULA and GUA) on IFACE right now, e.g. ['fd13:26eb:b133:56dc::/64']."""
+    try:
+        out = subprocess.run(["ip", "-j", "-6", "addr", "show", "dev", iface, "scope", "global"],
+                             capture_output=True, text=True, timeout=10).stdout
+        data = json.loads(out or "[]")
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return []
+    nets = []
+    for a in data:
+        for i in a.get("addr_info", []):
+            if i.get("family") != "inet6" or i.get("deprecated") or i.get("tentative"):
+                continue
+            n = str(ipaddress.ip_network("%s/%s" % (i["local"], i.get("prefixlen", 64)), strict=False))
+            if n not in nets:
+                nets.append(n)
+    return nets
+
+
+def group_vlans(vlans, v6_from):
+    """-> {name: ([cidrs], [file prefixes])} in order; adds the IPv6 prefixes of --v6-from."""
+    out = {}
+    for name, cidr, prefixes in vlans:
+        key = next((k for k in out if k.lower() == name.lower()), name)
+        cidrs, pf = out.setdefault(key, ([], prefixes))
+        if cidr not in cidrs:
+            cidrs.append(cidr)
+    for item in (v6_from or "").replace(";", ",").split(","):
+        if "=" not in item:
+            continue
+        name, iface = (x.strip() for x in item.split("=", 1))
+        key = next((k for k in out if k.lower() == name.lower()), None)
+        if key is None:
+            sys.exit("--v6-from: %r is not in --vlans" % name)
+        found = v6_prefixes(iface)
+        print("  IPv6 on %-10s for %-12s %s" % (iface, key, ", ".join(found) or "none (no router advertisement yet?)"))
+        for n in found:
+            if n not in out[key][0]:
+                out[key][0].append(n)
     return out
 
 
@@ -229,10 +279,15 @@ def main():
     ap.add_argument("--vlans", required=True, help='"Users=192.168.1.0/24,IoT=172.16.12.0/23@iot"')
     ap.add_argument("--dir", default=os.path.dirname(os.path.abspath(__file__)), help="folder with group_*.txt")
     ap.add_argument("--fetch", metavar="BASE_URL", help="download group_<name>_*.txt from this repo URL first")
+    ap.add_argument("--v6-from", metavar="NAME=IFACE,...",
+                    help="add the IPv6 prefixes these interfaces have now to the VLAN groups")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--gravity", choices=["auto", "always", "never"], default="auto")
     args = ap.parse_args()
     vlans = parse_vlans(args.vlans)
+    if args.v6_from:
+        print("IPv6 prefixes")
+    groups = group_vlans(vlans, args.v6_from)
     if args.fetch:
         print("Downloading group files from %s" % args.fetch)
         for prefix in sorted({p for _, _, ps in vlans for p in ps}):
@@ -246,12 +301,13 @@ def main():
             s = Sync(api, args.dry_run)
             gids = {}
             print("\nGroups and VLAN subnets")
-            for name, cidr, prefixes in vlans:
-                print("  %s %s  (lists: %s)" % (name, cidr, ", ".join("group_%s_*" % p for p in prefixes)))
-                gids[name] = s.ensure_group(name, cidr)
-                s.ensure_client(cidr, gids[name], name)
+            for name, (cidrs, prefixes) in groups.items():
+                print("  %s %s  (lists: %s)" % (name, " ".join(cidrs), ", ".join("group_%s_*" % p for p in prefixes)))
+                gids[name] = s.ensure_group(name, cidrs[0])
+                for cidr in cidrs:
+                    s.ensure_client(cidr, gids[name], name)
             # subnet clients this tool created that are no longer a VLAN (subnet changed / VLAN removed)
-            wanted = {cidr for _, cidr, _ in vlans}
+            wanted = {c for cidrs, _ in groups.values() for c in cidrs}
             for c in s.call("GET", "/clients").get("clients", []):
                 if str(c.get("comment") or "").startswith(TAG) and c.get("client") not in wanted:
                     print("  - client %s (no longer a VLAN subnet)" % c["client"])
@@ -260,10 +316,11 @@ def main():
             our_gids = {g["id"] for g in s.groups().values() if str(g.get("comment") or "").startswith(TAG)}
             our_gids |= {g for g in gids.values() if g is not None}
             for suffix, path, label in KINDS:
-                want = {gids[n]: wanted_entries(args.dir, ps, suffix) for n, _, ps in vlans if gids[n] is not None}
+                want = {gids[n]: wanted_entries(args.dir, ps, suffix) for n, (_, ps) in groups.items()
+                        if gids[n] is not None}
                 total = sum(len(v) for v in want.values())
                 print("\n%s: %s" % (label.capitalize(), ", ".join("%s %d" % (n, len(want.get(gids[n], [])))
-                                                                 for n, _, _ in vlans) or "none"))
+                                                                 for n in groups) or "none"))
                 added = s.sync_kind(path, label, want, our_gids)
                 if suffix == "blocklists":
                     s.lists_added = added

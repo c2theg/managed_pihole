@@ -3,7 +3,7 @@
 #  deploy_multi_pi.sh  -  ONE Pi-hole serving several VLANs (from a trunk), with
 #                         different block lists per VLAN and per-VLAN monitoring
 #
-#  Version:       1.1.2
+#  Version:       1.2.0
 #  Last Updated:  11/5/2026
 #  Author:        Christopher Gray
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
@@ -59,6 +59,11 @@
 #    TRUNK_IF     interface carrying the trunk  (default: the default-route NIC, or its parent
 #                 when that is a VLAN interface such as vlan200@ens18)
 #    ROUTERS      "NAME=router-ip ..." per-VLAN reverse DNS (device names in reports)
+#    IPV6         auto | off   (default: auto) DNS over IPv6 too: on every VLAN the VM takes
+#                 <prefix>IPV6_TOKEN from the prefix(es) your router advertises (SLAAC), the
+#                 VLAN's IPv6 prefixes join its Pi-hole group (refreshed hourly), and dns-only
+#                 VLANs get the same firewall for IPv6. off = IPv6 switched off on dns-only VLANs.
+#    IPV6_TOKEN   interface id of this VM in every IPv6 prefix   (default: ::53)
 #    ALERT_WEBHOOK  URL that receives alerts (POST)     (default: none, journal only)
 #    ALERT_*      thresholds, see vlan_report.py        (written to the MCP local config)
 #    FORCE_STACK=true   re-run install_pihole.sh even if already installed
@@ -67,6 +72,12 @@
 #    passed through. DNS_FILTER is always pihole (groups are a Pi-hole feature).
 #
 #  ChangeLog:
+#    1.2.0  11/6/2026  IPv6: the VM is <prefix>::53 on every VLAN (SLAAC token, also on VLAN
+#                      interfaces from your own netplan files), IPv6 prefixes join the VLAN's
+#                      group (hourly refresh), dns-only firewall for IPv6 (ip6tables), installer
+#                      re-run with SERVE_IPV6 when Docker's network has no IPv6 (real client
+#                      addresses). Summary lists each VLAN's IPv6 DNS address. (Claude Code)
+#    1.1.3  11/6/2026  Summary: how to show/change the admin password; Unbound has no UI.
 #    1.1.2  11/6/2026  FIX: re-running the wizard failed on VLANs this script had added
 #                      ("not on this VM yet"), and would have dropped the untagged address it
 #                      had added. Its own interfaces/addresses are now kept and managed. (Claude Code)
@@ -82,7 +93,7 @@
 #-------------------------------------------------------------------------------
 set -euo pipefail
 
-SCRIPT_VERSION="1.1.2"   # not VERSION: /etc/os-release (sourced below) sets that
+SCRIPT_VERSION="1.2.0"   # not VERSION: /etc/os-release (sourced below) sets that
 SRC_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PIHOLE_BASE="${PIHOLE_BASE:-/opt/pihole}"
 SAVED="${PIHOLE_BASE}/multi_pi.conf"
@@ -111,7 +122,7 @@ put_file() { # FILE MODE
 }
 
 # ---- settings: saved file, then environment wins ----
-KEYS="VLANS TRUNK_IF ROUTERS ALERT_WEBHOOK MANAGED_REPO_RAW"
+KEYS="VLANS TRUNK_IF ROUTERS ALERT_WEBHOOK MANAGED_REPO_RAW IPV6 IPV6_TOKEN"
 declare -A ENV_VAL=()
 for k in $KEYS; do [[ -n "${!k:-}" ]] && ENV_VAL[$k]="${!k}"; done
 if [[ -r "$SAVED" ]]; then
@@ -122,6 +133,10 @@ for k in "${!ENV_VAL[@]}"; do printf -v "$k" '%s' "${ENV_VAL[$k]}"; done
 MANAGED_REPO_RAW="${MANAGED_REPO_RAW:-https://raw.githubusercontent.com/c2theg/managed_pihole/refs/heads/main}"
 ROUTERS="${ROUTERS:-}"
 ALERT_WEBHOOK="${ALERT_WEBHOOK:-}"
+IPV6="${IPV6:-auto}"; [[ "${IPV6,,}" =~ ^(off|false|no|0)$ ]] && IPV6=off || IPV6=auto
+IPV6_TOKEN="${IPV6_TOKEN:-::53}"
+python3 -I -c 'import ipaddress,sys; a=int(ipaddress.IPv6Address(sys.argv[1])); sys.exit(0 if 0 < a < 2**64 else 1)' "${IPV6_TOKEN}" 2>/dev/null \
+  || { printf '  IPV6_TOKEN must be an IPv6 interface id such as ::53\n' >&2; exit 1; }
 
 section "deploy_multi_pi.sh ${SCRIPT_VERSION}$(dry && echo '  (DRY RUN - nothing is changed)')"
 dry || [[ $EUID -eq 0 ]] || die "Run with sudo (or DRY_RUN=true to preview)."
@@ -356,6 +371,11 @@ EOF
   done
   [[ -n "${VLANS}" ]] || die "No VLANs chosen; nothing to do."
   echo ""
+  echo "  IPv6: on every VLAN this VM takes <prefix>${IPV6_TOKEN} from the prefix your router"
+  echo "  advertises (SLAAC) and answers DNS there; devices asking over IPv6 get their VLAN's"
+  echo "  lists too. Your router then hands out that address as the IPv6 DNS server."
+  if ask_yn "Serve DNS over IPv6 as well?" "$([[ "${IPV6}" == off ]] && echo n || echo y)"; then IPV6=auto; else IPV6=off; fi
+  echo ""
   ask ALERT_WEBHOOK "Alert webhook URL (ntfy topic URL / Slack / Discord; 'none' = journal only)" \
       "${ALERT_WEBHOOK:-none}" v_url_opt
   [[ "${ALERT_WEBHOOK}" == none ]] && ALERT_WEBHOOK=""
@@ -366,6 +386,7 @@ show_setup() {
   echo "  Trunk   : ${TRUNK_IF}"
   local item; for item in ${VLANS}; do echo "  VLAN    : ${item}"; done
   echo "  Routers : ${ROUTERS:-none}"
+  echo "  IPv6    : $([[ "${IPV6}" == off ]] && echo off || echo "on (this VM = <prefix>${IPV6_TOKEN} in each VLAN)")"
   echo "  Webhook : ${ALERT_WEBHOOK:-none}"
 }
 
@@ -400,7 +421,7 @@ for line in vinfo.splitlines():
     f = line.split()
     if len(f) == 4 and f[2] == trunk and f[1].isdigit():
         existing[int(f[1])] = (f[0], None if f[3] == "-" else f[3])
-our_ifaces = set(re.findall(r"^    (\S+):", ours, re.M)) - {trunk}
+our_ifaces = set(re.findall(r"^    (\S+):[^\n]*\n      id: ", ours, re.M)) - {trunk}
 our_addrs = {a.strip() for grp in re.findall(r"addresses: \[([^\]]*)\]", ours) for a in grp.split(",")}
 
 def guess_profile(name):
@@ -517,7 +538,8 @@ fi
 # 3. VLAN interfaces (netplan)
 # =============================================================
 section "VLAN interfaces (netplan)"
-if (( WRITE == 0 )); then
+V6_ON=false; [[ "${IPV6}" != off ]] && V6_ON=true
+if (( WRITE == 0 )) && ! $V6_ON; then
   info "Nothing to add: every VLAN interface/address already exists."
   if [[ -f "${NETPLAN_FILE}" ]] && ! dry; then
     info "Removing ${NETPLAN_FILE} (no longer needed) and applying netplan..."
@@ -525,16 +547,16 @@ if (( WRITE == 0 )); then
   fi
 else
   command -v netplan >/dev/null || die "netplan not found (Ubuntu uses netplan). Add the VLAN interfaces by hand, then re-run."
-  # netplan id of the trunk NIC (usually its name). A definition we do not know about
-  # would conflict, so refuse instead of guessing.
-  LINK_ID=$(python3 -I - "${TRUNK_IF}" <<'PY'
+  # Line 1: netplan id of the trunk NIC (usually its name). Line 2: VLAN interfaces your own
+  # netplan files define (only those can get IPv6 settings merged in from our file).
+  NP_INFO=$(python3 -I - "${TRUNK_IF}" <<'PY'
 import glob, sys
 trunk = sys.argv[1]
 try:
     import yaml
 except ImportError:
-    print(trunk); sys.exit(0)
-found = None
+    print(trunk); print(""); sys.exit(0)
+found, vlans = None, set()
 for f in sorted(glob.glob("/etc/netplan/*.yaml")) + sorted(glob.glob("/lib/netplan/*.yaml")) + sorted(glob.glob("/run/netplan/*.yaml")):
     if f.endswith("60-managed-pihole-vlans.yaml"):
         continue
@@ -542,44 +564,63 @@ for f in sorted(glob.glob("/etc/netplan/*.yaml")) + sorted(glob.glob("/lib/netpl
         doc = yaml.safe_load(open(f)) or {}
     except Exception:
         continue
-    for nid, cfg in ((doc.get("network") or {}).get("ethernets") or {}).items():
+    net = doc.get("network") or {}
+    for nid, cfg in (net.get("ethernets") or {}).items():
         cfg = cfg or {}
         if nid == trunk or cfg.get("set-name") == trunk:
             found = nid
+    vlans |= set((net.get("vlans") or {}).keys())
 print(found or "")
+print(" ".join(sorted(vlans)))
 PY
 )
+  LINK_ID=$(sed -n 1p <<<"${NP_INFO}"); OWN_VLANS=" $(sed -n 2p <<<"${NP_INFO}") "
   [[ -n "${LINK_ID}" ]] || dry || die "${TRUNK_IF} is not defined in /etc/netplan/*.yaml; add the VLAN interfaces by hand (netplan 'vlans:'), then re-run."
   LINK_ID="${LINK_ID:-${TRUNK_IF}}"
   UNTAGGED_ADD=$(awk '$2==0 && $8=="add" {print $4}' <<<"${PARSED}")
+  UNTAGGED_SERVED=$(awk '$2==0 {print $1}' <<<"${PARSED}")
+  # IPv6 settings for one interface: SLAAC from the router's advertisement, with a fixed
+  # interface id, so this VM is <prefix>${IPV6_TOKEN} in every VLAN (stable DNS address).
+  v6_lines() { # INDENT
+    if $V6_ON; then
+      printf '%saccept-ra: true\n%sipv6-address-token: "%s"\n' "$1" "$1" "${IPV6_TOKEN}"
+    fi
+  }
+  V6_SKIP=""
   NP=$( {
     echo "# Generated by managed_pihole deploy_multi_pi.sh ${SCRIPT_VERSION} - re-running the script rewrites it."
-    echo "# VLANs on the trunk ${TRUNK_IF}: static address, no gateway, no IPv6. Interfaces configured"
-    echo "# elsewhere (your own netplan files) are not repeated here."
+    echo "# VLANs on the trunk ${TRUNK_IF}: static IPv4, no gateway$($V6_ON && echo "; IPv6 by SLAAC as <prefix>${IPV6_TOKEN}" || echo ", no IPv6")."
+    echo "# Interfaces configured in your own netplan files are not repeated; netplan merges the"
+    echo "# extra settings below into them."
     echo "network:"
     echo "  version: 2"
-    if [[ -n "${UNTAGGED_ADD}" ]]; then
+    if [[ -n "${UNTAGGED_ADD}" ]] || { $V6_ON && [[ -n "${UNTAGGED_SERVED}" ]]; }; then
       echo "  ethernets:"
-      echo "    ${LINK_ID}:              # untagged VLAN: extra address (netplan adds it to your own config)"
-      echo "      addresses: [${UNTAGGED_ADD}]"
+      echo "    ${LINK_ID}:              # untagged VLAN ${UNTAGGED_SERVED}"
+      [[ -n "${UNTAGGED_ADD}" ]] && echo "      addresses: [${UNTAGGED_ADD}]"
+      [[ -n "${UNTAGGED_SERVED}" ]] && v6_lines "      "
     fi
-    if awk '$2!=0 && $8=="add" {f=1} END {exit !f}' <<<"${PARSED}"; then
-      echo "  vlans:"
-      while read -r name vid iface addr net mode profile origin; do
-        [[ "$vid" == 0 || "$origin" != add ]] && continue
-        cat <<EOF
-    ${iface}:              # ${name}
-      id: ${vid}
-      link: ${LINK_ID}
-      addresses: [${addr}]
-      dhcp4: false
-      dhcp6: false
-      accept-ra: false
-      link-local: []
-EOF
-      done <<<"${PARSED}"
-    fi
+    vl=""
+    while read -r name vid iface addr net mode profile origin; do
+      [[ "$vid" == 0 ]] && continue
+      if [[ "$origin" == add ]]; then
+        vl+="    ${iface}:              # ${name}"$'\n'
+        vl+="      id: ${vid}"$'\n'"      link: ${LINK_ID}"$'\n'"      addresses: [${addr}]"$'\n'
+        vl+="      dhcp4: false"$'\n'"      dhcp6: false"$'\n'
+        if $V6_ON; then vl+="$(v6_lines "      ")"$'\n'
+        else vl+="      accept-ra: false"$'\n'"      link-local: []"$'\n'; fi
+      elif $V6_ON; then
+        if [[ "${OWN_VLANS}" == *" ${iface} "* ]]; then
+          vl+="    ${iface}:              # ${name} (defined in your netplan file; IPv6 settings only)"$'\n'
+          vl+="$(v6_lines "      ")"$'\n'
+        else
+          V6_SKIP+=" ${iface}"
+        fi
+      fi
+    done <<<"${PARSED}"
+    [[ -n "$vl" ]] && printf '  vlans:\n%s' "$vl"
   } )
+  for i in ${V6_SKIP}; do warn "${i} is not defined in netplan; IPv6 for it is up to you (not changed)."; done
   OLD_NP=""; [[ -f "${NETPLAN_FILE}" ]] && OLD_NP=$(cat "${NETPLAN_FILE}")
   missing=false   # file unchanged but an interface is down / lost its address -> apply anyway
   while read -r name vid iface addr net mode profile origin; do
@@ -591,6 +632,9 @@ EOF
     [[ "${np_state}" == changed ]] && info "Would write ${NETPLAN_FILE} and run netplan apply." || ok "VLAN interfaces already configured."
   elif [[ "${np_state}" == changed ]] || $missing; then
     info "Applying netplan (the network may blip for a second)..."
+    if $V6_ON; then   # an earlier run (IPv6 off) switched IPv6 off on dns-only interfaces
+      while read -r name vid iface _; do sysctl -qw "net.ipv6.conf.${iface}.disable_ipv6=0" 2>/dev/null || true; done <<<"${PARSED}"
+    fi
     if netplan generate && netplan apply; then
       ok "netplan applied (${NETPLAN_FILE})"
     else
@@ -612,6 +656,30 @@ EOF
   fi
 fi
 
+# IPv6 addresses per VLAN (<prefix>${IPV6_TOKEN}, from the router's advertisements)
+declare -A V6ADDR=()
+V6_IFACES=""
+if [[ "${IPV6}" != off ]]; then
+  v6_of() { # IFACE -> this VM's <prefix>::token addresses on it, ULA first (stable)
+    ip -6 -o addr show dev "$1" scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 \
+      | grep -i -- ":${IPV6_TOKEN#::}\$" | sort -r | awk '/^f[cd]/ {print; next} {g = g " " $0} END {if (g) print substr(g, 2)}' | tr '\n' ' ' || true
+  }
+  dry || info "Waiting for IPv6 router advertisements (up to 20 s)..."
+  for ((t = 0; t < 20; t++)); do
+    pending=0
+    while read -r name vid iface _; do [[ -n "$(v6_of "$iface")" ]] || pending=1; done <<<"${PARSED}"
+    (( pending == 0 )) || dry && break
+    sleep 1
+  done
+  while read -r name vid iface _; do
+    V6_IFACES+="${V6_IFACES:+,}${name}=${iface}"
+    V6ADDR[$name]="$(v6_of "$iface")"
+    if [[ -n "${V6ADDR[$name]// /}" ]]; then ok "IPv6 ${name} (${iface}): ${V6ADDR[$name]}"
+    elif ! dry; then warn "IPv6 ${name} (${iface}): no address - your router sends no IPv6 advertisement (RA) on this VLAN yet."
+    fi
+  done <<<"${PARSED}"
+fi
+
 # =============================================================
 # 3b. Save settings now (re-runs, daily sync) - so a failed install keeps your answers
 # =============================================================
@@ -619,7 +687,7 @@ if ! dry; then
   install -d -m 755 "${PIHOLE_BASE}"
   {
     echo "# Generated by deploy_multi_pi.sh ${SCRIPT_VERSION} - edit and re-run the script to change."
-    for k in VLANS TRUNK_IF ROUTERS ALERT_WEBHOOK MANAGED_REPO_RAW GROUP_MAP DNS_ONLY_IFS; do
+    for k in VLANS TRUNK_IF ROUTERS ALERT_WEBHOOK MANAGED_REPO_RAW IPV6 IPV6_TOKEN GROUP_MAP DNS_ONLY_IFS V6_IFACES; do
       printf '%s=%q\n' "$k" "${!k}"
     done
   } | put_file "${SAVED}" 600 >/dev/null
@@ -633,9 +701,16 @@ ENV_FILE="${PIHOLE_BASE}/pihole.env"
 if [[ -r "${ENV_FILE}" ]] && grep -q '^DNS_FILTER="adguardhome"' "${ENV_FILE}"; then
   die "This host runs AdGuard Home. Per-VLAN groups need Pi-hole: re-run install_pihole.sh with DNS_FILTER=pihole first."
 fi
+NEED_V6_STACK=false
+if [[ "${IPV6}" != off && -s "${PIHOLE_BASE}/docker-compose.yml" ]] && ! grep -q 'enable_ipv6: true' "${PIHOLE_BASE}/docker-compose.yml"; then
+  NEED_V6_STACK=true
+  info "Docker's network has no IPv6 yet: Pi-hole would see every IPv6 query as coming from the"
+  info "Docker gateway (no per-device stats, no VLAN group). Re-running install_pihole.sh to add it;"
+  info "it asks its questions again (Enter keeps the defaults)."
+fi
 if is_true "${SKIP_STACK:-false}"; then
   info "SKIP_STACK=true: not running install_pihole.sh"
-elif [[ -s "${PIHOLE_BASE}/docker-compose.yml" ]] && ! is_true "${FORCE_STACK:-false}"; then
+elif [[ -s "${PIHOLE_BASE}/docker-compose.yml" ]] && ! is_true "${FORCE_STACK:-false}" && ! $NEED_V6_STACK; then
   ok "Already installed in ${PIHOLE_BASE} (FORCE_STACK=true to re-run install_pihole.sh)."
 elif dry; then
   info "Would run: DNS_FILTER=pihole bash install_pihole.sh"
@@ -645,7 +720,8 @@ else
     INSTALLER=$(mktemp); curl -fsSL "${MANAGED_REPO_RAW}/install_pihole.sh" -o "${INSTALLER}"
   fi
   # Port 53 is published on all addresses, so it answers on every VLAN address too.
-  DNS_FILTER=pihole ENABLE_MCP="${ENABLE_MCP:-true}" bash "${INSTALLER}"
+  DNS_FILTER=pihole ENABLE_MCP="${ENABLE_MCP:-true}" \
+    SERVE_IPV6="$([[ "${IPV6}" == off ]] && echo "${SERVE_IPV6:-auto}" || echo true)" bash "${INSTALLER}"
 fi
 if [[ -r "${ENV_FILE}" ]]; then
   # shellcheck disable=SC1090
@@ -689,7 +765,8 @@ else
 fi
 chmod 755 "\$D"/*.py
 PIHOLE_API_URL="http://\${FILTER_IP}/api" PIHOLE_PASSWORD="\$(cat "\${PIHOLE_BASE}/secrets/pihole_password.txt")" \\
-  exec python3 "\$D/upsert_vlan_groups.py" --vlans "\${GROUP_MAP}" --dir "\$D" \${fetch} "\$@"
+  exec python3 "\$D/upsert_vlan_groups.py" --vlans "\${GROUP_MAP}" --dir "\$D" \${fetch} \
+  \${V6_IFACES:+--v6-from "\${V6_IFACES}"} "\$@"
 SYNC
   "${VLAN_DIR}/vlan-sync.sh" --no-fetch || warn "Group sync reported a problem (see above)."
 else
@@ -727,10 +804,12 @@ section "Firewall for dns-only VLANs"
 put_file "${FW_SCRIPT}" 755 >/dev/null <<FW
 #!/bin/sh
 # Generated by deploy_multi_pi.sh ${SCRIPT_VERSION}. On these interfaces this VM answers DNS (and
-# ping) and nothing else: no web UI, no SSH, no forwarding/routing through the VM, no IPv6.
+# ping) and nothing else: no web UI, no SSH, no forwarding/routing through the VM.
 #   INPUT       -> MULTIPI-IN   (services on the host, e.g. sshd)
 #   DOCKER-USER -> MULTIPI-FWD  (published container ports; Docker bypasses ufw)
+# The same for IPv6 with ip6tables (IPV6=auto), or IPv6 switched off there (IPV6=off).
 IFACES="${DNS_ONLY_IFS}"
+IPV6="${IPV6}"
 set -e
 case "\${1:-start}" in
   stop)
@@ -738,14 +817,40 @@ case "\${1:-start}" in
     iptables -D DOCKER-USER -j MULTIPI-FWD 2>/dev/null || true
     iptables -F MULTIPI-IN 2>/dev/null || true; iptables -X MULTIPI-IN 2>/dev/null || true
     iptables -F MULTIPI-FWD 2>/dev/null || true; iptables -X MULTIPI-FWD 2>/dev/null || true
+    if command -v ip6tables >/dev/null; then
+      ip6tables -D INPUT -j MULTIPI-IN 2>/dev/null || true
+      ip6tables -D DOCKER-USER -j MULTIPI-FWD 2>/dev/null || true
+      ip6tables -F MULTIPI-IN 2>/dev/null || true; ip6tables -X MULTIPI-IN 2>/dev/null || true
+      ip6tables -F MULTIPI-FWD 2>/dev/null || true; ip6tables -X MULTIPI-FWD 2>/dev/null || true
+    fi
     exit 0 ;;
 esac
 iptables -N MULTIPI-IN 2>/dev/null || iptables -F MULTIPI-IN
 iptables -N MULTIPI-FWD 2>/dev/null || iptables -F MULTIPI-FWD
 iptables -N DOCKER-USER 2>/dev/null || true
+V6=false
+if [ "\$IPV6" != off ] && command -v ip6tables >/dev/null; then
+  V6=true
+  ip6tables -N MULTIPI-IN 2>/dev/null || ip6tables -F MULTIPI-IN
+  ip6tables -N MULTIPI-FWD 2>/dev/null || ip6tables -F MULTIPI-FWD
+  ip6tables -N DOCKER-USER 2>/dev/null || true
+fi
 for i in \$IFACES; do
-  # IPv4 only on these VLANs: no IPv6 address = nothing to reach around these IPv4 rules
-  sysctl -qw "net.ipv6.conf.\$i.disable_ipv6=1" 2>/dev/null || true
+  if \$V6; then
+    sysctl -qw "net.ipv6.conf.\$i.disable_ipv6=0" 2>/dev/null || true
+    for c in MULTIPI-IN MULTIPI-FWD; do
+      ip6tables -A \$c -i "\$i" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+      ip6tables -A \$c -i "\$i" -p udp --dport 53 -j RETURN
+      ip6tables -A \$c -i "\$i" -p tcp --dport 53 -j RETURN
+    done
+    # ICMPv6 is how IPv6 works (neighbor discovery, router advertisements) - and ping
+    ip6tables -A MULTIPI-IN -i "\$i" -p ipv6-icmp -j RETURN
+    ip6tables -A MULTIPI-IN -i "\$i" -j DROP
+    ip6tables -A MULTIPI-FWD -i "\$i" -j DROP
+  else
+    # IPv4 only on these VLANs: no IPv6 address = nothing to reach around these IPv4 rules
+    sysctl -qw "net.ipv6.conf.\$i.disable_ipv6=1" 2>/dev/null || true
+  fi
   for c in MULTIPI-IN MULTIPI-FWD; do
     iptables -A \$c -i "\$i" -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
     iptables -A \$c -i "\$i" -p udp --dport 53 -j RETURN
@@ -757,6 +862,10 @@ for i in \$IFACES; do
 done
 iptables -C INPUT -j MULTIPI-IN 2>/dev/null || iptables -I INPUT 1 -j MULTIPI-IN
 iptables -C DOCKER-USER -j MULTIPI-FWD 2>/dev/null || iptables -I DOCKER-USER 1 -j MULTIPI-FWD
+if \$V6; then
+  ip6tables -C INPUT -j MULTIPI-IN 2>/dev/null || ip6tables -I INPUT 1 -j MULTIPI-IN
+  ip6tables -C DOCKER-USER -j MULTIPI-FWD 2>/dev/null || ip6tables -I DOCKER-USER 1 -j MULTIPI-FWD
+fi
 echo "multi-pi firewall: dns-only on \${IFACES:-<none>}"
 FW
 put_file /etc/systemd/system/multi-pi-firewall.service 644 >/dev/null <<'UNIT'
@@ -875,8 +984,33 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 UNIT
+  # IPv6 prefixes (a new ISP prefix) -> VLAN groups, hourly; no downloads, no gravity
+  put_file /etc/systemd/system/multi-pi-v6-sync.service 644 >/dev/null <<UNIT
+[Unit]
+Description=managed_pihole: IPv6 prefixes of each VLAN into its Pi-hole group
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+Nice=10
+ExecStart=${VLAN_DIR}/vlan-sync.sh --no-fetch --gravity never
+UNIT
+  put_file /etc/systemd/system/multi-pi-v6-sync.timer 644 >/dev/null <<'UNIT'
+[Unit]
+Description=managed_pihole: hourly IPv6 prefix refresh of the VLAN groups
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=5m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
   systemctl daemon-reload
   systemctl enable --now dns-vlan-alerts.timer multi-pi-vlan-sync.timer >/dev/null
+  if [[ "${IPV6}" != off ]]; then systemctl enable --now multi-pi-v6-sync.timer >/dev/null
+  else systemctl disable --now multi-pi-v6-sync.timer >/dev/null 2>&1 || true; fi
   ok "dns-vlan-report, MCP VLAN tools, alerts every 15 min (journalctl -u dns-vlan-alerts)"
   runuser -u "${MCP_USER}" -- python3 "${MCP_DIR}/vlan_report.py" --hours 24 | head -12 || warn "Report test failed."
 fi
@@ -888,11 +1022,19 @@ section "Done"
 HOST_IP=$(awk -v m=" ${MGMT_IFS} " 'index(m, " "$3" ") {print $4; exit}' <<<"${PARSED}" | cut -d/ -f1)
 HOST_IP="${HOST_IP:-$(awk '$6=="full" {print $4; exit}' <<<"${PARSED}" | cut -d/ -f1)}"
 cat <<EOF
-  Pi-hole admin     : http://${HOST_IP:-<vm-ip>}/admin   (password: ${PIHOLE_BASE}/secrets/pihole_password.txt)
-  Per-VLAN DNS server (set it as the ONLY DNS server in each VLAN's DHCP on your router):
+  Pi-hole admin     : http://${HOST_IP:-<vm-ip>}/admin   (from a "full" VLAN; not from dns-only ones)
+                      password: sudo cat ${PIHOLE_BASE}/secrets/pihole_password.txt
+                      change it: sudo ${MAINT} password
+  Unbound           : no web UI. Stats: sudo docker exec unbound unbound-control stats_noreset
+  Per-VLAN DNS server - on your router, make it the ONLY DNS server of each VLAN:
+    IPv4: in the VLAN's DHCP settings.$( [[ "${IPV6}" != off ]] && printf '\n    IPv6: as the VLAN'"'"'s IPv6 DNS (RDNSS in router advertisements and/or DHCPv6). Prefer\n          the fd.. (ULA) address: it stays the same when your ISP changes your prefix.' )
 EOF
 while read -r name vid iface addr net mode profile origin; do
   printf '    %-14s VLAN %-4s -> DNS %-15s (%s, %s, lists: %s)\n' "$name" "$vid" "${addr%/*}" "$net" "$mode" "$profile"
+  if [[ "${IPV6}" != off ]]; then
+    v6="${V6ADDR[$name]:-}"; v6="${v6% }"
+    printf '    %-14s           IPv6 %s\n' "" "${v6:-none yet: no IPv6 advertisement (RA) from your router on this VLAN}"
+  fi
 done <<<"${PARSED}"
 cat <<EOF
 
@@ -906,7 +1048,7 @@ cat <<EOF
   AI agent (MCP)    : claude mcp add dns -- ssh ${MCP_USER}@${HOST_IP:-<vm-ip>}
                       ask: "which IoT device sent the most bad DNS traffic today?"
   Alerts            : every 15 min -> journalctl -u dns-vlan-alerts$( [[ -n "${ALERT_WEBHOOK}" ]] && echo " + webhook" )
-  Firewall          : dns-only on ${DNS_ONLY_IFS:-<none>} (systemctl status multi-pi-firewall)
+  Firewall          : dns-only on ${DNS_ONLY_IFS:-<none>}$( [[ "${IPV6}" != off ]] && echo ", IPv4 and IPv6" || echo " (IPv6 off there)" ) (systemctl status multi-pi-firewall)
   Settings          : ${SAVED}  (edit, then re-run this script)
 
   Note: devices on dns-only VLANs can still reach the internet through your router;

@@ -6,8 +6,8 @@
 #
 #  pihole_api.py  -  tiny Pi-hole v6 REST API client (Python standard library only)
 #
-#  Version:       1.1.0
-#  Last Updated:  11/5/2026
+#  Version:       1.1.1
+#  Last Updated:  11/6/2026
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #
 #  Why this exists:
@@ -36,6 +36,8 @@
 #    https://github.com/pi-hole/FTL/tree/master/src/api/docs/content/specs
 #
 #  ChangeLog:
+#    1.1.1  11/6/2026  load_settings(): also BACKUP_* and ADGUARD_CONF / ADGUARD_CONTAINER
+#                      environment variables (backup_dbs.py 2.0.0).
 #    1.1.0  11/5/2026  load_settings(): also ./managed_pihole.local.conf, and ALERT_* / MCP_* /
 #                      THREAT_* / BYPASS_* environment variables (vlan_report.py).
 #    1.0.1  11/5/2026  load_settings() also reads UNBOUND_CONTROL, UNBOUND_CONTAINER and
@@ -54,7 +56,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Later files win. managed_pihole.local.conf holds site extras (e.g. written by
@@ -87,11 +89,12 @@ def load_settings():
             pass
     for key in ("PIHOLE_API_URL", "PIHOLE_PASSWORD", "PIHOLE_DIR", "PIHOLE_MODE", "PIHOLE_CONTAINER",
                 "DNS_FILTER", "ADGUARD_URL", "ADGUARD_USER", "ADGUARD_PASSWORD", "ADGUARD_SOCIAL_CLIENTS",
-                "UNBOUND_UPSTREAM", "UNBOUND_CONTROL", "UNBOUND_CONTAINER", "MCP_SERVICES"):
+                "UNBOUND_UPSTREAM", "UNBOUND_CONTROL", "UNBOUND_CONTAINER", "MCP_SERVICES",
+                "ADGUARD_CONF", "ADGUARD_CONTAINER"):
         if os.environ.get(key):
             settings[key] = os.environ[key]
-    for key, value in os.environ.items():  # report / alert / MCP settings
-        if value and key.startswith(("ALERT_", "MCP_", "THREAT_", "BYPASS_")):
+    for key, value in os.environ.items():  # report / alert / MCP / backup settings
+        if value and key.startswith(("ALERT_", "MCP_", "THREAT_", "BYPASS_", "BACKUP_")):
             settings[key] = value
     settings.setdefault("PIHOLE_MODE", "auto")
     settings.setdefault("PIHOLE_CONTAINER", "pihole")

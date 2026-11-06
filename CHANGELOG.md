@@ -3,10 +3,57 @@
 All notable changes to managed_pihole. Each file also carries its own version and
 changelog in its header. Dates are M/D/YYYY.
 
+## 1.7.0 (11/6/2026): DNS over IPv6 on every VLAN
+Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
+
+- **`deploy_multi_pi.sh` 1.1.3 → 1.2.0**, IPv6 is on by default (`IPV6=auto`; `off` keeps the old behaviour):
+  - On every VLAN the VM takes `<prefix>::53` (`IPV6_TOKEN`) from the prefixes your router advertises (SLAAC). This also applies to VLAN interfaces from your own netplan files: only `accept-ra` and the token are merged in, and your file is not edited.
+  - Each VLAN's IPv6 prefixes (ULA and ISP) join its Pi-hole group, refreshed hourly (`multi-pi-v6-sync.timer`), so IoT devices on IPv6 get the IoT lists. Old prefixes are removed.
+  - The dns-only firewall now covers IPv6 too (ip6tables: DNS, ICMPv6 and replies; everything else dropped). Before, IPv6 was switched off on those VLANs.
+  - Re-runs `install_pihole.sh` with `SERVE_IPV6=true` when Docker's network has no IPv6.
+  - The summary shows each VLAN's IPv6 DNS address (ULA first), or says the router sends no RA there.
+- **`install_pihole.sh` 6.6.0 → 6.7.0**: new `SERVE_IPV6` (on by default with Docker ≥ 27) puts IPv6 on the Docker network. Without it, Docker relays IPv6 DNS queries, and Pi-hole sees them all as the Docker gateway: no per-device stats, and no VLAN group. Independent of `ENABLE_IPV6` (IPv6 upstreams).
+- **`upsert_vlan_groups.py` 1.1.0 → 1.2.0**: several subnets per VLAN; `--v6-from NAME=IFACE` adds that interface's current IPv6 prefixes.
+- **`vlan_report.py` 1.0.0 → 1.0.1**: a subnet that is also in another group (e.g. `Allow_Social`) is still reported under its VLAN.
+- **Tested**:
+  - Docker 29: with IPv6 on the Docker network, the container sees the client's own IPv6 address. Without it, it sees the Docker gateway.
+  - Lab shaped like a real VM, with a stand-in router (radvd) advertising ULA and ISP-style prefixes:
+    - `::53` addresses on the untagged VLAN, the existing `vlan200` and the new VLANs; a clear message on a VLAN without RA
+    - `netplan generate` with the merge into your own file
+    - IPv6 firewall on dns-only VLANs: DNS and ping allowed, web UI blocked; open on full VLANs
+  - Live Pi-hole: IPv6 prefix clients in the right groups, a changed ISP prefix pruned, 0 changes on re-run.
+
+## 1.6.0 (11/6/2026): daily config backups for Pi-hole, Unbound and AdGuard Home
+Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
+
+- **`backup_dbs.py` 1.0.0 → 2.0.0**:
+  - Also backs up **Unbound** (`/etc/unbound`) and **AdGuard Home** (`AdGuardHome.yaml`), native or Docker (`docker cp`, bind mounts included). Each is found automatically and skipped when not installed; `--only` / `BACKUP_SERVICES` to choose.
+  - New `--install-timer [--at HH:MM]`: a daily job (systemd timer, or `/etc/cron.d` without systemd), 03:00 by default. `--remove-timer` removes it.
+  - `--keep` default 7 → 4 (`BACKUP_KEEP`). Files are mode 600 in a mode 700 folder and are written to a temp name first, so a failed run never leaves half a backup.
+  - Pi-hole is skipped, not an error, when it is not installed.
+- **`install_pihole.sh` 6.5.0 → 6.6.0**: new `pihole-maint.sh backup` and `pihole-maint-backup.timer` (03:00, keep 4, `/opt/pihole/backups`): the Teleporter archive or `AdGuardHome.yaml`, plus Unbound's config. New `BACKUP_TIME`, `BACKUP_KEEP`, `BACKUP_DIR`.
+- **`update_lists.sh` 1.0.1 → 1.0.2**: the pre-update backup covers AdGuard Home and Unbound too, and goes to `<backup folder>/pre-update` (newest 1), apart from the daily rotation.
+- **`pihole_api.py` 1.1.0 → 1.1.1**: `load_settings()` also takes `BACKUP_*`, `ADGUARD_CONF`, `ADGUARD_CONTAINER` from the environment.
+- **`managed_pihole.conf.example` 1.4.0**: backup settings. **`.gitignore`**: the new backup files.
+
+## 1.5.0 (11/6/2026): password command, clearer install summary
+Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
+
+- **`install_pihole.sh` → 6.5.0**: new `sudo /opt/pihole/pihole-maint.sh password` changes the admin password.
+  - Pi-hole: writes `secrets/pihole_password.txt` and restarts the container.
+  - AdGuard Home: also writes a new bcrypt hash into `AdGuardHome.yaml`.
+  - Tested on both. `pihole setpassword` has no effect with this setup, because the container takes its password from the secrets file.
+- The install summary now shows:
+  - every admin URL (all host addresses, e.g. Tailscale)
+  - how to show the password again and how to change it
+  - that Unbound has no web UI, and how to read its stats
+- **`deploy_multi_pi.sh` → 1.1.3**: the same password and Unbound hints in its summary.
+
 ## 1.4.2 (11/6/2026): installer prompts no longer quit on a typo; wizard re-runs fixed
 Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
 
-- **`install_pihole.sh` 6.4.0 → 6.4.1**: an invalid social-media device list or NextDNS ID is explained and asked again instead of ending the install. `SOCIAL_CLIENTS` accepts commas or semicolons (`10.11.1.0/24,10.13.1.0/24`).
+- **`install_pihole.sh` 6.4.0 → 6.4.2**: if WireGuard fails to start, the install no longer stops there (which also stopped `deploy_multi_pi.sh`); it warns and shows the cause from the journal.
+  Also: an invalid social-media device list or NextDNS ID is explained and asked again instead of ending the install. `SOCIAL_CLIENTS` accepts commas or semicolons (`10.11.1.0/24,10.13.1.0/24`).
 - **`deploy_multi_pi.sh` 1.1.0 → 1.1.2**:
   - Saves your VLAN setup before running `install_pihole.sh`, so a failed or interrupted install keeps your answers for the re-run.
   - Fixed: re-running the wizard failed on the VLANs the script had added ("not on this VM yet"), and would have dropped the untagged address it had added. They are now kept and still managed by the script.

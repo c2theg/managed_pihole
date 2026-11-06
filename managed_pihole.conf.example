@@ -1,7 +1,7 @@
 # managed_pihole settings - copy to /etc/managed_pihole.conf (or managed_pihole.conf
 # next to the scripts), then:  sudo chmod 600 /etc/managed_pihole.conf
 # Every line is optional. Environment variables with the same name win.
-# Version: 1.3.0 | Updated: 11/5/2026 | Claude Code (Anthropic) - Claude Opus 5.5
+# Version: 1.4.0 | Updated: 11/6/2026 | Claude Code (Anthropic) - Claude Opus 5.5
 
 # ---- Which filter do the scripts manage? ----
 #DNS_FILTER=pihole                 # pihole (default) | adguardhome
@@ -29,6 +29,15 @@
 #MCP_SERVICES=pihole,unbound       # any of pihole, adguardhome, unbound (default: DNS_FILTER + unbound)
 #UNBOUND_CONTROL=auto              # auto | e.g. "docker exec unbound unbound-control" | "sudo unbound-control"
 #UNBOUND_CONTAINER=unbound         # used by auto when unbound-control is not installed on the host
+
+# ---- Backups (backup_dbs.py; daily job: sudo ./backup_dbs.py --install-timer) ----
+#BACKUP_DIR=/home/pi/pihole_backups  # default: /home/pi/pihole_backups, else ~/pihole_backups
+#BACKUP_KEEP=4                     # newest N of each kind are kept
+#BACKUP_TIME=03:00                 # time of day for --install-timer (local time)
+#BACKUP_SERVICES=auto              # auto (all found) | any of pihole,unbound,adguardhome
+#ADGUARD_CONF=                     # native AdGuardHome.yaml, if not in /opt/AdGuardHome or the snap
+#ADGUARD_CONTAINER=adguardhome     # docker container names used to find the config
+#UNBOUND_CONTAINER=unbound
 
 # ---- update_lists.sh ----
 #MANAGED_PIHOLE_REPO=https://raw.githubusercontent.com/c2theg/managed_pihole/main

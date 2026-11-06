@@ -6,7 +6,7 @@
 #
 #  vlan_report.py  -  per-VLAN DNS activity and "bad traffic" detection (Pi-hole v6)
 #
-#  Version:       1.0.0
+#  Version:       1.0.1
 #  Last Updated:  11/5/2026
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #
@@ -49,6 +49,8 @@
 #    BYPASS_LIST_KEYWORDS      list URL words that mark a DNS-bypass list
 #
 #  ChangeLog:
+#    1.0.1  11/6/2026  VLAN name = the VLAN group even when the subnet is also in another
+#                      group (e.g. Allow_Social); IPv6 prefixes count as the VLAN too. (Claude Code)
 #    1.0.0  11/5/2026  New file (Claude Code).
 #-------------------------------------------------------------------------------
 import argparse
@@ -65,7 +67,7 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pihole_api import PiholeAPI, PiholeAPIError, load_settings  # noqa: E402
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 BLOCKED = {"GRAVITY", "REGEX", "DENYLIST", "GRAVITY_CNAME", "REGEX_CNAME", "DENYLIST_CNAME",
            "EXTERNAL_BLOCKED_IP", "EXTERNAL_BLOCKED_NULL", "EXTERNAL_BLOCKED_NXRA", "EXTERNAL_BLOCKED_EDE15"}
@@ -108,7 +110,10 @@ def parse_vlan_map(raw):
 
 def vlans_from_pihole(get):
     """Subnet clients in a (non-Default) group = VLANs, named after the group."""
-    groups = {g["id"]: g["name"] for g in (get("/groups") or {}).get("groups", [])}
+    rows = (get("/groups") or {}).get("groups", [])
+    groups = {g["id"]: g["name"] for g in rows}
+    # groups made by upsert_vlan_groups.py come first (a subnet can also be in e.g. Allow_Social)
+    vlan_gids = {g["id"] for g in rows if str(g.get("comment") or "").startswith("managed_pihole vlan")}
     out = []
     for c in (get("/clients") or {}).get("clients", []):
         try:
@@ -117,7 +122,8 @@ def vlans_from_pihole(get):
             continue
         if net.num_addresses <= 1:
             continue
-        names = [groups.get(g) for g in c.get("groups", []) if g != 0 and groups.get(g)]
+        gids = sorted(c.get("groups", []), key=lambda g: g not in vlan_gids)
+        names = [groups.get(g) for g in gids if g != 0 and groups.get(g)]
         out.append((names[0] if names else str(net), net))
     return out
 

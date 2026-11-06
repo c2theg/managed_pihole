@@ -1,9 +1,24 @@
 #!/bin/bash
-#  By: Christpher Gray | Version 6.4.1 | Updated: 11/6/2026
+#  By: Christpher Gray | Version 6.7.0 | Updated: 11/6/2026
 #  Updated by: Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
 #  Install:  wget https://raw.githubusercontent.com/c2theg/srvBuilds/refs/heads/master/install_pihole.sh && chmod u+x install_pihole.sh
 #
 #  ChangeLog:
+#    6.7.0  11/6/2026  (Claude Code) NEW: SERVE_IPV6 (default on with Docker >= 27): IPv6 on the
+#                      Docker network, so DNS over IPv6 keeps each client's own address
+#                      (stats, groups). Before, Docker relayed IPv6 queries and they all looked
+#                      like the Docker gateway. Independent of ENABLE_IPV6 (IPv6 upstreams).
+#    6.6.0  11/6/2026  (Claude Code) NEW: daily config backup at 03:00 (BACKUP_TIME), newest 4
+#                      kept (BACKUP_KEEP) in ${PIHOLE_BASE}/backups (BACKUP_DIR): Pi-hole
+#                      Teleporter or AdGuard Home's AdGuardHome.yaml, plus Unbound's config
+#                      (backup_dbs.py 2.0.0). Timer pihole-maint-backup.timer; run it now with
+#                      `pihole-maint.sh backup`.
+#    6.5.0  11/6/2026  (Claude Code) NEW: `pihole-maint.sh password` changes the admin password
+#                      (Pi-hole: secrets file + restart; AdGuard Home: bcrypt in its config).
+#                      Summary shows every admin URL, how to show/change the password, and
+#                      that Unbound has no web UI (how to read its stats).
+#    6.4.2  11/6/2026  (Claude Code) FIX: WireGuard failing to start no longer aborts the
+#                      install (and deploy_multi_pi.sh after it); it warns with the cause.
 #    6.4.1  11/6/2026  (Claude Code) FIX: an invalid social-media device list or NextDNS ID
 #                      no longer ends the install - it explains and asks again. SOCIAL_CLIENTS
 #                      accepts commas/semicolons as separators (10.11.1.0/24,10.13.1.0/24).
@@ -65,10 +80,11 @@
 # ---------------------------------------------------------------------------
 # Scheduled maintenance (systemd timers, installed by this script)
 # ---------------------------------------------------------------------------
+#   backup   03:00  Pi-hole Teleporter / AdGuard Home config + Unbound config, keep 4
 #   daily   ~03:30  sync c2theg/managed_pihole lists + gravity update
 #   weekly  Sun     refresh CA certificates (drop expired), renew Pi-hole TLS
 #                   cert, pull and redeploy updated container images
-#   Manual: sudo ${PIHOLE_BASE}/pihole-maint.sh {daily|weekly|lists|certs|images|add-peer NAME|status}
+#   Manual: sudo ${PIHOLE_BASE}/pihole-maint.sh {daily|weekly|backup|lists|certs|images|add-peer NAME|status}
 #
 # ---------------------------------------------------------------------------
 # Usage
@@ -90,7 +106,11 @@
 #   DNS_V6                 space-separated IPv6 resolvers    (default: "2606:4700:4700::1002")
 #   NEXTDNS_ID             use NextDNS over DoH instead of DNS_V4/DNS_V6
 #   ODOH_SERVERS           ODoH targets (dnscrypt names)     (default: "odoh-cloudflare odoh-snowstorm odoh-crypto-sx")
-#   ENABLE_IPV6            auto | true | false               (default: auto)
+#   ENABLE_IPV6            auto | true | false               (default: auto)  IPv6 to the upstreams
+#   SERVE_IPV6             auto | true | false               (default: auto = true with Docker >= 27)
+#                          IPv6 on the Docker network, so clients asking over IPv6 keep their
+#                          own address (per-client stats and groups). Without it Docker relays
+#                          IPv6 queries and every one looks like it came from the Docker gateway.
 #   IMPORT_LISTS           true | false                      (default: true - no prompt)
 #   SOCIAL_CLIENTS         IPs / hostnames / MACs allowed to use social media, space separated
 #                          (default: none - social sites stay blocked for everyone)
@@ -107,6 +127,9 @@
 #   MCP_USER               system user the agent logs in as  (default: dnsmcp)
 #   MCP_SSH_KEYS           public key(s) allowed to start it  (default: the sudo user's
 #                          authorized_keys; later: pihole-maint.sh mcp-add-key KEY|FILE)
+#   BACKUP_TIME            daily config backup, HH:MM local  (default: 03:00)
+#   BACKUP_KEEP            backups of each kind to keep      (default: 4)
+#   BACKUP_DIR             backup folder                     (default: ${PIHOLE_BASE}/backups)
 #   TZ                     (default: America/New_York)
 #
 # References
@@ -136,6 +159,7 @@ DNS_V4="${DNS_V4:-1.1.1.2 208.67.222.123}"
 DNS_V6="${DNS_V6:-2606:4700:4700::1002}"
 ODOH_SERVERS="${ODOH_SERVERS:-odoh-cloudflare odoh-snowstorm odoh-crypto-sx}"
 ENABLE_IPV6="${ENABLE_IPV6:-auto}"
+SERVE_IPV6="${SERVE_IPV6:-auto}"
 
 IMPORT_LISTS="${IMPORT_LISTS:-true}"   # all managed lists are imported unless set to false
 SOCIAL_CLIENTS="${SOCIAL_CLIENTS:-}"
@@ -145,6 +169,11 @@ AUTO_UPDATE_IMAGES="${AUTO_UPDATE_IMAGES:-true}"
 MANAGED_REPO_RAW="${MANAGED_REPO_RAW:-https://raw.githubusercontent.com/c2theg/managed_pihole/refs/heads/main}"
 ENABLE_MCP="${ENABLE_MCP:-true}"
 MCP_USER="${MCP_USER:-dnsmcp}"
+BACKUP_TIME="${BACKUP_TIME:-03:00}"
+BACKUP_KEEP="${BACKUP_KEEP:-4}"
+BACKUP_DIR="${BACKUP_DIR:-${PIHOLE_BASE}/backups}"
+[[ "${BACKUP_TIME}" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || die "BACKUP_TIME must be HH:MM (24 h), e.g. 03:00"
+[[ "${BACKUP_KEEP}" =~ ^[1-9][0-9]*$ ]] || die "BACKUP_KEEP must be a number, 1 or more"
 MCP_SSH_KEYS="${MCP_SSH_KEYS:-}"
 [[ "${MCP_USER}" =~ ^[a-z_][a-z0-9_-]{0,30}$ ]] || { echo "MCP_USER must be a valid user name." >&2; exit 1; }
 
@@ -357,10 +386,25 @@ if [[ "${ENABLE_IPV6}" == "auto" ]]; then
   fi
 fi
 is_true "${ENABLE_IPV6}" && ENABLE_IPV6=true || ENABLE_IPV6=false
+# IPv6 on the Docker network (real client addresses for IPv6 queries). Needs Docker >= 27
+# (ip6tables on by default); a new install gets the current Docker.
+if [[ "${SERVE_IPV6}" == "auto" ]]; then
+  SERVE_IPV6=true
+  if command -v docker >/dev/null 2>&1; then
+    _dv=$(docker version --format '{{.Server.Version}}' 2>/dev/null | cut -d. -f1)
+    if [[ "${_dv:-0}" =~ ^[0-9]+$ && "${_dv:-0}" -lt 27 ]]; then
+      warn "Docker < 27: IPv6 clients will all show as the Docker gateway (upgrade Docker, then SERVE_IPV6=true)."
+      SERVE_IPV6=false
+    fi
+  fi
+fi
+is_true "${SERVE_IPV6}" && SERVE_IPV6=true || SERVE_IPV6=false
+[[ "${ENABLE_IPV6}" == true ]] && SERVE_IPV6=true
 
 info "DNS filter    : ${DNS_FILTER}"
 info "Upstream mode : ${UPSTREAM_MODE}"
 info "IPv6 upstream : ${ENABLE_IPV6}"
+info "IPv6 clients  : ${SERVE_IPV6} (real client addresses for queries over IPv6)"
 info "Managed lists : ${IMPORT_LISTS}"
 info "Social clients: ${SOCIAL_CLIENTS:-none}"
 info "WireGuard     : ${ENABLE_WIREGUARD}"
@@ -841,13 +885,13 @@ networks:
     driver: bridge
 UNBOUND_SVC
 
-  if [[ "${ENABLE_IPV6}" == "true" ]]; then
+  if [[ "${SERVE_IPV6}" == "true" ]]; then
     echo "    enable_ipv6: true"
   fi
   echo "    ipam:"
   echo "      config:"
   echo "        - subnet: ${DNS_NET_PREFIX}.0/24"
-  if [[ "${ENABLE_IPV6}" == "true" ]]; then
+  if [[ "${SERVE_IPV6}" == "true" ]]; then
     echo "        - subnet: ${DNS_NET6}"
   fi
   cat <<SECRETS
@@ -884,6 +928,9 @@ WG_TUNNEL="${WG_TUNNEL}"
 WG_NET4="${WG_NET4}"
 WG_NET6="${WG_NET6}"
 WG_IPV6="${ENABLE_IPV6}"
+SERVE_IPV6="${SERVE_IPV6}"
+BACKUP_DIR="${BACKUP_DIR}"
+BACKUP_KEEP="${BACKUP_KEEP}"
 ENVFILE
 chmod 600 "${ENV_FILE}"
 
@@ -895,6 +942,7 @@ cat > "${MAINT}" <<'MAINT_SCRIPT'
 #!/bin/bash
 # pihole-maint.sh: generated by install_pihole.sh
 #   daily     sync managed lists (if enabled) + gravity update
+#   backup    config backup: Pi-hole Teleporter / AdGuardHome.yaml + Unbound (keep BACKUP_KEEP)
 #   weekly    certs + images
 #   lists     sync c2theg/managed_pihole into gravity.db and run gravity
 #   certs     refresh host CA store (drop expired CAs), renew Pi-hole TLS cert
@@ -904,6 +952,7 @@ cat > "${MAINT}" <<'MAINT_SCRIPT'
 #   setup-agh finish AdGuard Home first-run setup + upstream (DNS_FILTER=adguardhome)
 #   mcp       install/refresh the read-only MCP server for AI agents (ENABLE_MCP)
 #   mcp-add-key KEY|FILE  allow an SSH public key to start the MCP server (and nothing else)
+#   password  [NEW]  change the admin (web UI) password; asks when NEW is not given
 set -euo pipefail
 BASE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 # shellcheck disable=SC1091
@@ -1097,6 +1146,34 @@ sync_lists_agh() {
   log "Applying managed lists to AdGuard Home (and refreshing filters)..."
   ADGUARD_URL="http://${FILTER_IP}" ADGUARD_USER=admin ADGUARD_PASSWORD="$(agh_pw)" \
     python3 "$dir/upsert_adguardhome.py" --dir "$dir" ${extra} ${social:+--social-clients "$social"}
+}
+
+# ---- Config backup (backup_dbs.py): Pi-hole Teleporter or AdGuardHome.yaml, + Unbound ----
+pyver() { grep -m1 -oE '^(Version|__version__) = "[0-9.]+"' "$1" 2>/dev/null | grep -oE '[0-9.]+' || true; }
+backup() {
+  local dir="${PIHOLE_BASE}/managed" f new old
+  mkdir -p "$dir"
+  # Newest tools from the repo, but never replace a copy with an OLDER version
+  # (a checkout of a newer release seeds this folder at install time).
+  for f in backup_dbs.py pihole_api.py; do
+    if fetch "$f" > "$dir/$f.tmp" 2>/dev/null && [[ -s "$dir/$f.tmp" ]]; then
+      new=$(pyver "$dir/$f.tmp"); old=$(pyver "$dir/$f")
+      if [[ -z "$old" || "$(printf '%s\n%s\n' "$old" "$new" | sort -V | tail -1)" == "$new" ]]; then
+        mv "$dir/$f.tmp" "$dir/$f"
+      else rm -f "$dir/$f.tmp"; fi
+    else
+      rm -f "$dir/$f.tmp"
+      [[ -s "$dir/$f" ]] || { warn "Could not fetch $f; no backup made."; return 1; }
+    fi
+  done
+  log "Backing up ${DNS_FILTER} + Unbound config to ${BACKUP_DIR:-${PIHOLE_BASE}/backups} (keeping ${BACKUP_KEEP:-4} of each)..."
+  if [[ "${DNS_FILTER:-pihole}" == "pihole" ]]; then
+    PIHOLE_API_URL="http://${FILTER_IP}/api" PIHOLE_PASSWORD="$(cat "${PIHOLE_BASE}/secrets/pihole_password.txt")" \
+    PIHOLE_DIR="${PIHOLE_BASE}/etc-pihole" \
+      python3 "$dir/backup_dbs.py" --dest "${BACKUP_DIR:-${PIHOLE_BASE}/backups}" --keep "${BACKUP_KEEP:-4}" --no-db
+  else
+    python3 "$dir/backup_dbs.py" --dest "${BACKUP_DIR:-${PIHOLE_BASE}/backups}" --keep "${BACKUP_KEEP:-4}" --no-db
+  fi
 }
 
 # ---- MCP server for AI agents (read-only stats, started over SSH) ----
@@ -1344,6 +1421,39 @@ PEER
   command -v qrencode >/dev/null && qrencode -t ansiutf8 < "$dir/$name.conf"
 }
 
+# Admin password. secrets/pihole_password.txt is the source of truth: the Pi-hole container sets
+# its password from it on every start, and the list/VLAN syncs log in with it.
+set_password() {
+  local new="${1:-}" again f="${BASE}/secrets/pihole_password.txt"
+  if [[ -z "$new" ]]; then
+    read -rsp "New admin password: " new; echo
+    read -rsp "Again: " again; echo
+    [[ "$new" == "$again" ]] || { echo "The passwords differ; nothing changed." >&2; exit 1; }
+  fi
+  [[ ${#new} -ge 8 ]] || { echo "Use at least 8 characters; nothing changed." >&2; exit 1; }
+  if [[ "${DNS_FILTER}" == "adguardhome" ]]; then
+    # AdGuard Home keeps a bcrypt hash in its config; make one with htpasswd (throw-away container)
+    local hash conf="${BASE}/adguardhome/conf/AdGuardHome.yaml"
+    hash=$(printf '%s' "$new" | docker run --rm -i -q httpd:2.4-alpine htpasswd -niBC 10 admin | cut -d: -f2-) || hash=""
+    [[ "$hash" == '$2'* ]] || { echo "Could not create the password hash; nothing changed." >&2; exit 1; }
+    docker stop adguardhome >/dev/null
+    python3 -I -c '
+import re, sys
+p, h = sys.argv[1], sys.argv[2]
+s = open(p).read()
+s2, n = re.subn(r"(\n\s*- name: admin\n\s*password: ).*", lambda m: m.group(1) + h, s, count=1)
+if not n:
+    sys.exit("user admin not found in " + p)
+open(p, "w").write(s2)
+' "$conf" "$hash" || { docker start adguardhome >/dev/null; exit 1; }
+    docker start adguardhome >/dev/null
+  fi
+  # write in place (same inode): the container's secret is a bind mount of this file
+  ( umask 077; printf '%s' "$new" > "$f" ); chmod 600 "$f"
+  if [[ "${DNS_FILTER}" == "pihole" ]]; then docker restart pihole >/dev/null; fi
+  log "Admin password changed (${f}); ${DNS_FILTER} restarted. Log in with the new password."
+}
+
 status() {
   cd "${PIHOLE_BASE}" && docker compose ps
   echo ""
@@ -1362,6 +1472,7 @@ fi
 
 case "${1:-}" in
   daily)    sync_lists; gravity; if is_true "${ENABLE_MCP:-false}"; then mcp_fetch || true; fi ;;
+  backup)   backup ;;
   weekly)   refresh_cas; renew_pihole_tls; update_images ;;
   lists)    sync_lists; gravity ;;
   setup-agh) agh_setup ;;
@@ -1371,7 +1482,8 @@ case "${1:-}" in
   images)   update_images ;;
   add-peer) add_peer "${2:?usage: $0 add-peer NAME}" ;;
   status)   status ;;
-  *) echo "usage: $0 {daily|weekly|lists|certs|images|add-peer NAME|status|setup-agh|mcp|mcp-add-key KEY}" >&2; exit 2 ;;
+  password) set_password "${2:-}" ;;
+  *) echo "usage: $0 {daily|weekly|backup|lists|certs|images|add-peer NAME|status|password [NEW]|setup-agh|mcp|mcp-add-key KEY}" >&2; exit 2 ;;
 esac
 MAINT_SCRIPT
 chmod 700 "${MAINT}"
@@ -1501,7 +1613,14 @@ After=network-online.target docker.service
 Wants=network-online.target
 DROPIN
   systemctl daemon-reload
-  systemctl enable --now wg-quick@wg0 >/dev/null 2>&1 || systemctl restart wg-quick@wg0
+  systemctl enable wg-quick@wg0 >/dev/null 2>&1 || true
+  if ! systemctl restart wg-quick@wg0 2>/dev/null; then
+    # Not fatal: DNS/Pi-hole work without it. Show why, so it can be fixed and retried.
+    warn "WireGuard did not start; everything else is installed. Cause (journalctl -u wg-quick@wg0):"
+    journalctl -u wg-quick@wg0 -n 12 --no-pager -o cat 2>/dev/null | sed 's/^/      /' >&2 || true
+    warn "Fix it, then: sudo systemctl restart wg-quick@wg0  (or re-run with ENABLE_WIREGUARD=false)"
+    return 0
+  fi
 
   if command -v ufw >/dev/null 2>&1 && ufw status | grep -q 'Status: active'; then
     ufw allow "${WG_PORT}/udp" >/dev/null
@@ -1568,8 +1687,15 @@ fi
 # Scheduled maintenance (systemd timers)
 # =============================================================
 
+# Run from a repo checkout? Seed the backup tool with the local copies (see backup()).
+_src="$(dirname "$(readlink -f "$0")")"
+mkdir -p "${PIHOLE_BASE}/managed"
+for _f in backup_dbs.py pihole_api.py; do
+  [[ -f "${_src}/${_f}" ]] && install -m 755 "${_src}/${_f}" "${PIHOLE_BASE}/managed/${_f}"
+done
+
 section "Scheduling maintenance"
-for unit in daily weekly; do
+for unit in daily weekly backup; do
   cat > "/etc/systemd/system/pihole-maint-${unit}.service" <<UNIT
 [Unit]
 Description=Pi-hole ${unit} maintenance (install_pihole.sh)
@@ -1595,6 +1721,18 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 TIMER
+cat > /etc/systemd/system/pihole-maint-backup.timer <<TIMER
+[Unit]
+Description=Daily ${DNS_FILTER} + Unbound config backup (keep ${BACKUP_KEEP})
+
+[Timer]
+OnCalendar=*-*-* ${BACKUP_TIME}:00
+# Missed (host off at that time)? Run at the next boot.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+TIMER
 cat > /etc/systemd/system/pihole-maint-weekly.timer <<'TIMER'
 [Unit]
 Description=Weekly Pi-hole CA, TLS and image updates
@@ -1608,7 +1746,7 @@ Persistent=true
 WantedBy=timers.target
 TIMER
 systemctl daemon-reload
-systemctl enable --now pihole-maint-daily.timer pihole-maint-weekly.timer >/dev/null
+systemctl enable --now pihole-maint-daily.timer pihole-maint-weekly.timer pihole-maint-backup.timer >/dev/null
 ok "Timers enabled: $(systemctl list-timers 'pihole-maint-*' --no-legend | wc -l) (systemctl list-timers 'pihole-maint-*')"
 
 if is_true "${ENABLE_WIREGUARD}"; then setup_wireguard; fi
@@ -1621,19 +1759,33 @@ section "Self-test"
 "${MAINT}" status || true
 
 HOST_IP=$(host_ip)
+UI_PATH=$( [[ "${DNS_FILTER}" == pihole ]] && echo /admin || echo / )
+OTHER_IPS=""
+for a in $(ip -4 -o addr show 2>/dev/null | awk '$2 !~ /^(lo|docker|br-|veth)/ {split($4, p, "/"); print p[1]}'); do
+  [[ "$a" == "${HOST_IP}" ]] || OTHER_IPS+=" http://${a}:${PIHOLE_HTTP_PORT}${UI_PATH}"
+done
 section "Pi-hole setup complete"
 cat <<SUMMARY
   DNS filter     : ${DNS_FILTER}
-  Admin UI       : http://${HOST_IP}:${PIHOLE_HTTP_PORT}$( [[ "${DNS_FILTER}" == pihole ]] && echo /admin || echo "/  (user: admin)" )   (https on :${PIHOLE_HTTPS_PORT})
-  Password       : $( [[ "${NEW_PASSWORD:-false}" == true ]] && echo "${PIHOLE_PASSWORD}" || echo "(unchanged)" )  -> ${SECRETS_FILE}
+  Admin UI       : http://${HOST_IP}:${PIHOLE_HTTP_PORT}${UI_PATH}   (https on :${PIHOLE_HTTPS_PORT})
+                   Also on this host's other addresses:${OTHER_IPS:- none}
+  Login          : $( [[ "${DNS_FILTER}" == adguardhome ]] && echo "user admin, " )password $( [[ "${NEW_PASSWORD:-false}" == true ]] && echo "${PIHOLE_PASSWORD}  (new - shown only now)" || echo "unchanged" )
+                   Show it again : sudo cat ${SECRETS_FILE}
+                   Change it     : sudo ${MAINT} password
+                   (not in the web UI$( [[ "${DNS_FILTER}" == pihole ]] && echo " or with 'pihole setpassword': the container resets it from that file on restart" ))
+  Unbound        : no web UI. Stats: sudo docker exec unbound unbound-control stats_noreset
+                   Health of everything: sudo ${MAINT} status
 
   DNS path       : ${DNS_FILTER} -> Unbound (DNSSEC, cache) -> ${UPSTREAM_MODE^^}
   Upstreams      : ${UPSTREAM_DESC}
   IPv6 upstream  : ${ENABLE_IPV6}
+  IPv6 clients   : ${SERVE_IPV6}$( [[ "${SERVE_IPV6}" == true ]] && echo " (port 53 answers on this host's IPv6 addresses with real client addresses)" )
   Retention      : ${LOG_RETENTION_DAYS} days (query DB + rotated logs; container logs capped at 30 MB)
   Managed lists  : ${IMPORT_LISTS} (daily sync from github.com/c2theg/managed_pihole)
   Social clients : ${SOCIAL_CLIENTS:-none} (group Allow_Social; others keep social sites blocked)
-  Maintenance    : ${MAINT} {daily|weekly|lists|certs|images|add-peer|status|mcp|mcp-add-key}
+  Backups        : every day at ${BACKUP_TIME}, newest ${BACKUP_KEEP} kept in ${BACKUP_DIR}
+                   (${DNS_FILTER} config + Unbound). Now: sudo ${MAINT} backup
+  Maintenance    : ${MAINT} {daily|weekly|backup|lists|certs|images|add-peer|status|mcp|mcp-add-key}
 SUMMARY
 if is_true "${ENABLE_MCP}"; then
   cat <<MCPSUM

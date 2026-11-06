@@ -20,6 +20,8 @@ pihole_backups/
 *.backup
 *.backup.gz
 pihole-teleporter_*.zip
+unbound-config_*.tar.gz
+adguardhome-config_*.tar.gz
 exwhite.txt
 exblack.txt
 regwhite.txt

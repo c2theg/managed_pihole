@@ -2,8 +2,8 @@
 
 Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuard Home**, with **Unbound** as the recursive, DNSSEC-validating upstream. Each one works on a **native OS install** or in **Docker**.
 
-- **Version:** 1.4.2
-- **Last updated:** 11/5/2026
+- **Version:** 1.7.0
+- **Last updated:** 11/6/2026
 - **Updated by:** Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)
 - **Pi-hole docs:** https://docs.pi-hole.net/main/post-install/
 
@@ -15,23 +15,23 @@ Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuar
 
 | File | Version | What it does |
 |---|---|---|
-| `update_lists.sh` | 1.0.1 | Main job: OS update → backup → download latest files → update Pi-hole → allow list → block lists + gravity |
+| `update_lists.sh` | 1.0.2 | Main job: OS update → backup → download latest files → update Pi-hole → allow list → block lists + gravity |
 | `upsert_lists.py` | 1.0.0 | Adds block lists, regex allow/deny, excluded domains through the v6 API, then runs gravity |
 | `pihole_allowlist.sh` | 1.0.0 | Exact **allow** domains (`pihole allow …`) |
-| `backup_dbs.py` | 1.0.0 | Teleporter backup (.zip) + gzip'd copies of `gravity.db` / `pihole-FTL.db` |
+| `backup_dbs.py` | 2.0.0 | Config backups of Pi-hole (Teleporter), Unbound and AdGuard Home, native or Docker; daily at 03:00, keep 4 ([below](#backups)) |
 | `export_custom_lists.sh` | 1.0.0 | Exports your custom domains and subscribed lists to text files |
 | `cleanup.sh` | 1.0.0 | Deletes rotated logs, flushes the query log |
 | `pihole_common.sh` | 1.0.0 | *New.* Shared shell helpers: detects native vs Docker |
-| `pihole_api.py` | 1.1.0 | *New.* Small Pi-hole v6 REST API client (Python standard library only) |
+| `pihole_api.py` | 1.1.1 | *New.* Small Pi-hole v6 REST API client (Python standard library only) |
 | `upsert_adguardhome.py` | 1.0.0 | *New.* Applies the same lists to **AdGuard Home** through its API (native or Docker) |
 | `setup_unbound.sh` | 1.1.0 | *New.* Native **Unbound** on 127.0.0.1:5335 (Pi-hole guide), then points Pi-hole or AdGuard Home at it |
 | `mcp_server.py` | 1.1.0 | *New.* Read-only **MCP server**: AI agents can read Pi-hole / AdGuard Home / Unbound stats, per VLAN too ([below](#ai-agent-access-mcp-server)) |
-| `deploy_multi_pi.sh` | 1.1.2 | *New.* One Pi-hole for several VLANs (trunk): per-VLAN groups and lists, dns-only firewall, per-VLAN monitoring and alerts ([below](#several-vlans-one-pi-hole-deploy_multi_pish)) |
-| `upsert_vlan_groups.py` | 1.1.0 | *New.* One Pi-hole group per VLAN subnet, each with its own lists (`group_<profile>_*.txt`) |
-| `vlan_report.py` | 1.0.0 | *New.* Per-VLAN / per-device DNS report and alerts (threat hits, floods, DNS bypass, NXDOMAIN) |
+| `deploy_multi_pi.sh` | 1.2.0 | *New.* One Pi-hole for several VLANs (trunk): per-VLAN groups and lists, dns-only firewall, per-VLAN monitoring and alerts ([below](#several-vlans-one-pi-hole-deploy_multi_pish)) |
+| `upsert_vlan_groups.py` | 1.2.0 | *New.* One Pi-hole group per VLAN subnet, each with its own lists (`group_<profile>_*.txt`) |
+| `vlan_report.py` | 1.0.1 | *New.* Per-VLAN / per-device DNS report and alerts (threat hits, floods, DNS bypass, NXDOMAIN) |
 | `group_iot_blocklists.txt`, `group_iot_regex_deny.txt` | 0.1.0 | *New.* Extra lists for VLANs with the `iot` profile |
 | `group_kids_blocklists.txt`, `group_guest_blocklists.txt` | 0.1.0 | *New.* Extra lists for the `kids` and `guest` profiles |
-| `install_pihole.sh` | 6.4.1 | Docker stack installer: Pi-hole **or** AdGuard Home → Unbound → dnscrypt-proxy (+ WireGuard), with daily list sync |
+| `install_pihole.sh` | 6.7.0 | Docker stack installer: Pi-hole **or** AdGuard Home → Unbound → dnscrypt-proxy (+ WireGuard), with daily list sync |
 | `cgray_blocklists.txt` | 0.6.1 | Subscribed block-list URLs: all Firebog "ticked" lists plus every list in this repo |
 | `blocklist_regexs_cg.txt` | 0.1.0 | Regex deny |
 | `allowlist_regexs_cg.txt` | 0.1.0 | Regex allow (everyone) |
@@ -40,7 +40,7 @@ Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuar
 | `cgray_chat.txt`, `cgray_games.txt`, `cgray_social.txt`, `cgray_religion_school.txt` | — | Personal block lists, subscribed by raw GitHub URL |
 | `url_general_blocklist.txt`, `toolz_adblock_test.txt` | 0.1.0 | Extra block lists (subscribed via `cgray_blocklists.txt`) |
 | `doh_servers.txt` | 0.1.0 | Public DoH servers (blocked by `install_pihole.sh` / `--block-doh`) |
-| `managed_pihole.conf.example` | 1.3.0 | Settings template, copy to `/etc/managed_pihole.conf` |
+| `managed_pihole.conf.example` | 1.4.0 | Settings template, copy to `/etc/managed_pihole.conf` |
 
 Every script and list file has a header with its version, date, the AI agent that updated it, and a changelog.
 
@@ -110,6 +110,17 @@ sudo DNS_FILTER=adguardhome bash install_pihole.sh
 sudo SOCIAL_CLIENTS="192.168.0.50 kid-laptop" bash install_pihole.sh   # who may use social media
 sudo /opt/pihole/pihole-maint.sh status
 ```
+
+**Web interfaces:** there is one, for whichever DNS filter you chose. You get Pi-hole *or* AdGuard Home, never both.
+- **Pi-hole:** `http://<host>/admin`
+- **AdGuard Home:** `http://<host>/`, user `admin`
+- **Unbound** and dnscrypt-proxy have no web UI. Read Unbound's stats with `sudo docker exec unbound unbound-control stats_noreset`, or ask the MCP server.
+
+**Password:**
+- Show it: `sudo cat /opt/pihole/secrets/pihole_password.txt`
+- Change it: `sudo /opt/pihole/pihole-maint.sh password`
+
+Don't use `pihole setpassword` or the web UI to change it. With this setup the change has no effect, and the daily sync logs in with the password in that file.
 
 All managed lists are imported and configured automatically, with no prompt (`IMPORT_LISTS=false` to skip), and re-synced every day. This covers block lists, regex deny/allow, exact allows, excluded domains, DoH-bypass blocking, and the `Allow_Social` group with `SOCIAL_CLIENTS`.
 
@@ -198,7 +209,7 @@ Other switches for `update_lists.sh`: `SKIP_OS_UPDATE=1`, `SKIP_DOWNLOAD=1`, `SK
 sudo /opt/managed_pihole/update_lists.sh            # everything
 sudo /opt/managed_pihole/upsert_lists.py --dry-run  # preview list changes
 sudo /opt/managed_pihole/upsert_lists.py --no-gravity
-sudo /opt/managed_pihole/backup_dbs.py --dest /mnt/usb/pihole --keep 14
+sudo /opt/managed_pihole/backup_dbs.py --dest /mnt/usb/pihole --keep 14   # see Backups
 /opt/managed_pihole/export_custom_lists.sh ./export
 sudo /opt/managed_pihole/cleanup.sh
 ```
@@ -219,6 +230,38 @@ sudo /opt/managed_pihole/cleanup.sh
 | `/var/log/pihole.log`, `/var/log/pihole-FTL.log` | `/var/log/pihole/pihole.log`, `/var/log/pihole/FTL.log` |
 
 On Docker, prefix commands with `docker exec pihole`, e.g. `docker exec pihole pihole allow example.com`. Don't run `pihole -up` inside the container. Update by pulling the new image: `docker compose pull && docker compose up -d`.
+
+---
+
+## Backups
+
+`backup_dbs.py` backs up the config of whichever of these it finds, on a native install or in Docker:
+
+| Service | File | What's in it | Restore |
+|---|---|---|---|
+| Pi-hole | `pihole-teleporter_<time>.zip` | Teleporter: `pihole.toml`, lists, domains, groups, clients, local DNS, DHCP leases | Web UI › Settings › Teleporter, or `pihole-FTL --teleporter FILE` |
+| Unbound | `unbound-config_<time>.tar.gz` | `/etc/unbound` (native) or the container's `/etc/unbound`, bind mounts included | Native: `sudo tar -xzf FILE -C /`, then `unbound-checkconf && systemctl restart unbound` |
+| AdGuard Home | `adguardhome-config_<time>.tar.gz` | `AdGuardHome.yaml`: filters, rules, clients, DNS settings, hashed login | Stop AdGuard Home, put the file back, start it |
+
+The newest 4 of each kind are kept (`--keep`, `BACKUP_KEEP`). The files hold password hashes and keys, so they are written mode 600 in a mode 700 folder.
+
+**Every day at 03:00 (native install):**
+
+```sh
+sudo /opt/managed_pihole/backup_dbs.py --install-timer          # systemd timer (cron if no systemd)
+sudo /opt/managed_pihole/backup_dbs.py --install-timer --at 02:15 --keep 7 --dest /mnt/usb/dns
+systemctl list-timers managed-dns-backup.timer                   # next run
+sudo systemctl start managed-dns-backup.service                  # back up now
+sudo /opt/managed_pihole/backup_dbs.py --remove-timer
+```
+
+The time is the host's local time (`timedatectl`). If the machine is off at 03:00, the backup runs at the next boot.
+
+**Docker stack (`install_pihole.sh` 6.6.0+):** already scheduled. `pihole-maint-backup.timer` runs at 03:00 and keeps 4 backups in `/opt/pihole/backups` (`BACKUP_TIME`, `BACKUP_KEEP`, `BACKUP_DIR`). To back up now: `sudo /opt/pihole/pihole-maint.sh backup`.
+
+`update_lists.sh` also makes one backup before it changes anything. That backup goes to `<backup folder>/pre-update` (only the newest is kept), so it never pushes a daily backup out of the rotation.
+
+> Backups on the same disk don't survive a dead SD card. Point `--dest` at a USB stick or network share, or copy the folder somewhere else.
 
 ---
 
@@ -303,6 +346,12 @@ The files (`<profile>`, and also the VLAN's own `<name>`, both in lower case):
 - Pi-hole rate-limit events (query floods)
 
 Alerts fire on any threat-list hit, bypass attempts, floods, a high NXDOMAIN rate or a high blocked %. Thresholds are stricter on `dns-only` VLANs; see `vlan_report.py` for the `ALERT_*` settings, which you can set per VLAN, e.g. `ALERT_BLOCKED_PCT_IOT=60`. The same alert is not repeated for 6 hours.
+
+**IPv6** (on unless `IPV6=off`). On every VLAN, the VM takes `<prefix>::53` from the prefix your router advertises (SLAAC), and answers DNS there.
+- Each VLAN's IPv6 prefixes join its Pi-hole group and are refreshed hourly, so a new ISP prefix is picked up. Devices asking over IPv6 get their VLAN's lists.
+- `dns-only` VLANs get the same firewall over IPv6.
+- On the router, enable IPv6 (RA) on each VLAN, and hand out the VM's `fd…::53` (ULA) address as the IPv6 DNS server (RDNSS or DHCPv6). The ULA address doesn't change when your ISP prefix does.
+- The installer puts IPv6 on Docker's network (`SERVE_IPV6`). Otherwise Pi-hole would see every IPv6 query as coming from Docker, with no per-device stats and no VLAN group.
 
 **On your router/firewall:** set each VLAN's DHCP DNS to the VM's address on that VLAN, and to nothing else. Block IoT from reaching other VLANs, and from reaching any other DNS server (ports 53 and 853), so that devices must use the Pi-hole. Individual clients you add in Pi-hole (for example `SOCIAL_CLIENTS`) take priority over their subnet's group, so give them the VLAN group as well if they should keep its lists.
 
@@ -402,6 +451,9 @@ Native install (`sudo crontab -e`):
 
 # ...or only during business hours (07:05-19:05, Mon-Fri)
 5 7-19 * * 1-5 pihole -g
+
+# Config backup every day at 03:00, keep 4 (or: backup_dbs.py --install-timer)
+0 3 * * * /opt/managed_pihole/backup_dbs.py --no-db --keep 4 > /var/log/dns_backup.log 2>&1
 
 # Weekly log cleanup, Sunday 03:30
 30 3 * * 0 /opt/managed_pihole/cleanup.sh > /var/log/pihole_cleanup.log 2>&1
