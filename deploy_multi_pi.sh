@@ -3,7 +3,7 @@
 #  deploy_multi_pi.sh  -  ONE Pi-hole serving several VLANs (from a trunk), with
 #                         different block lists per VLAN and per-VLAN monitoring
 #
-#  Version:       1.1.1
+#  Version:       1.1.2
 #  Last Updated:  11/5/2026
 #  Author:        Christopher Gray
 #  Updated by:    Claude Code (Anthropic) - model: Claude Opus 5.5 (claude-opus-5-5)
@@ -67,6 +67,9 @@
 #    passed through. DNS_FILTER is always pihole (groups are a Pi-hole feature).
 #
 #  ChangeLog:
+#    1.1.2  11/6/2026  FIX: re-running the wizard failed on VLANs this script had added
+#                      ("not on this VM yet"), and would have dropped the untagged address it
+#                      had added. Its own interfaces/addresses are now kept and managed. (Claude Code)
 #    1.1.1  11/6/2026  Settings are saved before install_pihole.sh runs, so a failed or
 #                      interrupted install keeps your answers for the re-run. (Claude Code)
 #    1.1.0  11/5/2026  Many VLANs: detects VLAN interfaces that already exist on the trunk
@@ -79,7 +82,7 @@
 #-------------------------------------------------------------------------------
 set -euo pipefail
 
-SCRIPT_VERSION="1.1.1"   # not VERSION: /etc/os-release (sourced below) sets that
+SCRIPT_VERSION="1.1.2"   # not VERSION: /etc/os-release (sourced below) sets that
 SRC_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PIHOLE_BASE="${PIHOLE_BASE:-/opt/pihole}"
 SAVED="${PIHOLE_BASE}/multi_pi.conf"
@@ -306,8 +309,9 @@ EOF
   echo "    untagged      : ${host:-no IPv4 address}$([[ " ${MGMT_IFS} " == *" ${TRUNK_IF} "* ]] && echo "   (management)")"
   while read -r iface vid _ addr; do
     [[ -n "$iface" ]] || continue
-    printf '    VLAN %-8s : %s on %s%s\n' "$vid" "${addr/#-/no IPv4 address}" "$iface" \
-      "$([[ " ${MGMT_IFS} " == *" ${iface} "* ]] && echo "   (management)")"
+    printf '    VLAN %-8s : %s on %s%s%s\n' "$vid" "${addr/#-/no IPv4 address}" "$iface" \
+      "$([[ " ${MGMT_IFS} " == *" ${iface} "* ]] && echo "   (management)")" \
+      "$(grep -qE "^    ${iface}:" "${NETPLAN_FILE}" 2>/dev/null && echo "   (added by this script)")"
   done < <(awk -v t="${TRUNK_IF}" '$3==t' <<<"${VLAN_INFO}" | sort -k2n)
 
   # -- untagged / native VLAN --
@@ -331,7 +335,7 @@ EOF
       warn "VLAN ${vid} (${iface}) exists but has no IPv4 address; skipped (give it one in netplan to use it)."
       continue
     fi
-    if ask_yn "Serve DNS on VLAN ${vid} (${iface}, this VM is ${addr}, already configured)?" y; then
+    if ask_yn "Serve DNS on VLAN ${vid} (${iface}, this VM is ${addr})?" y; then
       vlan_questions "$vid" "$iface" auto "$addr" ""
     fi
   done 3< <(awk -v t="${TRUNK_IF}" '$3==t' <<<"${VLAN_INFO}" | sort -k2n)
@@ -428,7 +432,11 @@ for item in vlans.split():
         if addr == "auto":
             if not trunk_v4:
                 sys.exit("VLANS: %s uses 'auto' but %s has no IPv4 address; give a static IP/prefix" % (name, trunk))
-            addr, origin = trunk_v4[0], "have"
+            mine = [a for a in trunk_v4 if a in our_addrs]
+            if mine:   # address this script added earlier: keep managing it
+                addr = mine[0]
+            else:
+                addr, origin = trunk_v4[0], "have"
         elif addr in trunk_v4 and addr not in our_addrs:
             origin = "have"
     elif vid in existing and existing[vid][0] not in our_ifaces:
@@ -441,7 +449,9 @@ for item in vlans.split():
         addr, origin = have, "have"
     else:
         iface = "vlan%d" % vid
-        if addr == "auto":
+        if addr == "auto" and vid in existing and existing[vid][1]:
+            iface, addr = existing[vid]   # created by this script earlier: keep its address
+        elif addr == "auto":
             sys.exit("VLANS: %s (VLAN %d) is not on this VM yet; give this VM's static IP/prefix, e.g. 172.16.12.2/23"
                      % (name, vid))
     try:

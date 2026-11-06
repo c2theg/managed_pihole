@@ -26,7 +26,7 @@ Managed block/allow lists and maintenance scripts for **Pi-hole v6** or **AdGuar
 | `upsert_adguardhome.py` | 1.0.0 | *New.* Applies the same lists to **AdGuard Home** through its API (native or Docker) |
 | `setup_unbound.sh` | 1.1.0 | *New.* Native **Unbound** on 127.0.0.1:5335 (Pi-hole guide), then points Pi-hole or AdGuard Home at it |
 | `mcp_server.py` | 1.1.0 | *New.* Read-only **MCP server**: AI agents can read Pi-hole / AdGuard Home / Unbound stats, per VLAN too ([below](#ai-agent-access-mcp-server)) |
-| `deploy_multi_pi.sh` | 1.1.1 | *New.* One Pi-hole for several VLANs (trunk): per-VLAN groups and lists, dns-only firewall, per-VLAN monitoring and alerts ([below](#several-vlans-one-pi-hole-deploy_multi_pish)) |
+| `deploy_multi_pi.sh` | 1.1.2 | *New.* One Pi-hole for several VLANs (trunk): per-VLAN groups and lists, dns-only firewall, per-VLAN monitoring and alerts ([below](#several-vlans-one-pi-hole-deploy_multi_pish)) |
 | `upsert_vlan_groups.py` | 1.1.0 | *New.* One Pi-hole group per VLAN subnet, each with its own lists (`group_<profile>_*.txt`) |
 | `vlan_report.py` | 1.0.0 | *New.* Per-VLAN / per-device DNS report and alerts (threat hits, floods, DNS bypass, NXDOMAIN) |
 | `group_iot_blocklists.txt`, `group_iot_regex_deny.txt` | 0.1.0 | *New.* Extra lists for VLANs with the `iot` profile |

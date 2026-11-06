@@ -3,11 +3,13 @@
 All notable changes to managed_pihole. Each file also carries its own version and
 changelog in its header. Dates are M/D/YYYY.
 
-## 1.4.2 (11/6/2026): installer prompts no longer quit on a typo
+## 1.4.2 (11/6/2026): installer prompts no longer quit on a typo; wizard re-runs fixed
 Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
 
 - **`install_pihole.sh` 6.4.0 → 6.4.1**: an invalid social-media device list or NextDNS ID is explained and asked again instead of ending the install. `SOCIAL_CLIENTS` accepts commas or semicolons (`10.11.1.0/24,10.13.1.0/24`).
-- **`deploy_multi_pi.sh` 1.1.0 → 1.1.1**: saves your VLAN setup before running `install_pihole.sh`, so a failed or interrupted install keeps your answers for the re-run.
+- **`deploy_multi_pi.sh` 1.1.0 → 1.1.2**:
+  - Saves your VLAN setup before running `install_pihole.sh`, so a failed or interrupted install keeps your answers for the re-run.
+  - Fixed: re-running the wizard failed on the VLANs the script had added ("not on this VM yet"), and would have dropped the untagged address it had added. They are now kept and still managed by the script.
 
 ## 1.4.1 (11/5/2026): many VLANs, any subnet size, list profiles
 Updated by **Claude Code (Anthropic), model Claude Opus 5.5 (`claude-opus-5-5`)**.
